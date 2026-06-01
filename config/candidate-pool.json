@@ -1,0 +1,70 @@
+{
+  "default_pair": "chn_usa",
+  "objects": [
+    {
+      "id": "chn",
+      "label": "中国",
+      "gdelt_codes": ["CHN"],
+      "keywords": ["china", "chinese", "beijing", "xi jinping", "huawei", "taiwan", "中国", "北京"]
+    },
+    {
+      "id": "usa",
+      "label": "美国",
+      "gdelt_codes": ["USA"],
+      "keywords": ["united states", "u.s.", "us", "usa", "american", "washington", "trump", "biden", "美国", "华盛顿"]
+    },
+    {
+      "id": "rus",
+      "label": "俄罗斯",
+      "gdelt_codes": ["RUS"],
+      "keywords": ["russia", "russian", "moscow", "putin", "kremlin", "俄罗斯", "莫斯科"]
+    },
+    {
+      "id": "europe",
+      "label": "欧洲",
+      "gdelt_codes": ["EUR", "GBR", "DEU", "FRA", "ITA", "ESP", "NLD"],
+      "keywords": ["europe", "european", "eu", "brussels", "germany", "france", "britain", "uk", "欧盟", "欧洲"]
+    },
+    {
+      "id": "jpn",
+      "label": "日本",
+      "gdelt_codes": ["JPN"],
+      "keywords": ["japan", "japanese", "tokyo", "kishida", "ishiba", "日本", "东京"]
+    },
+    {
+      "id": "ind",
+      "label": "印度",
+      "gdelt_codes": ["IND"],
+      "keywords": ["india", "indian", "new delhi", "modi", "印度", "新德里"]
+    },
+    {
+      "id": "irn",
+      "label": "伊朗",
+      "gdelt_codes": ["IRN"],
+      "keywords": ["iran", "iranian", "tehran", "khamenei", "伊朗", "德黑兰"]
+    },
+    {
+      "id": "twn",
+      "label": "中国台湾",
+      "gdelt_codes": ["TWN"],
+      "keywords": ["taiwan", "taipei", "tsai", "lai ching-te", "台湾", "台北"]
+    },
+    {
+      "id": "ukr",
+      "label": "乌克兰",
+      "gdelt_codes": ["UKR"],
+      "keywords": ["ukraine", "ukrainian", "kyiv", "zelensky", "乌克兰", "基辅"]
+    }
+  ],
+  "excluded_pairs": [],
+  "featured_pairs": [
+    {"objects": ["chn", "usa"], "label": "中美"},
+    {"objects": ["chn", "rus"], "label": "中俄"},
+    {"objects": ["chn", "europe"], "label": "中欧"},
+    {"objects": ["chn", "jpn"], "label": "中日"},
+    {"objects": ["chn", "ind"], "label": "中印"},
+    {"objects": ["usa", "irn"], "label": "美伊"},
+    {"objects": ["usa", "rus"], "label": "美俄"},
+    {"objects": ["rus", "ukr"], "label": "俄乌"}
+  ]
+}
