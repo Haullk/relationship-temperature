@@ -4,11 +4,12 @@ import math
 from datetime import UTC, date, datetime, timedelta
 
 from relationship_temperature.config import load_candidate_pool
-from relationship_temperature.models import StandardizedEvent
+from relationship_temperature.models import DailyTrendPoint, StandardizedEvent
 from relationship_temperature.processing import (
     build_reports,
     build_trend,
     card_status,
+    change_status,
     event_weight,
     process_relationship,
     temperature_band,
@@ -112,6 +113,26 @@ def test_no_significant_turning_points_reason_code() -> None:
     result = process_relationship("chn_usa", events, pool)
 
     assert result.turning_point_status == "no_significant_turning_points"
+
+
+def test_change_status_uses_requested_window_days() -> None:
+    start = date(2026, 1, 1)
+    temperatures = [56.0] + [50.0] * 7 + [60.0] * 7
+    trend = [
+        DailyTrendPoint(
+            date=start + timedelta(days=offset),
+            daily_weighted_goldstein=None,
+            rolling_14d_goldstein=0,
+            relationship_temperature=temperature,
+            event_count=0,
+            event_weight=0,
+            temperature_band=temperature_band(temperature),
+        )
+        for offset, temperature in enumerate(temperatures)
+    ]
+
+    assert change_status(trend, 7) == "改善"
+    assert change_status(trend, 14) == "平稳"
 
 
 def test_reports_include_actor_matched_url_without_pair_keywords() -> None:

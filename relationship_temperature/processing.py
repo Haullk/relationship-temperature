@@ -106,7 +106,8 @@ def process_relationship(
     data_end = end_date or max(event.event_date for event in events)
     trend = build_trend(events, data_start, data_end)
     current = trend[-1] if trend else None
-    change_7d = change_status(trend)
+    change_7d = change_status(trend, TREND_SEGMENT_DAYS)
+    change_14d = change_status(trend, ROLLING_DAYS)
     turning_status, turning_points = build_turning_points(pair_id, events, pool, trend)
 
     return RelationshipResult(
@@ -121,7 +122,7 @@ def process_relationship(
         current_band=current.temperature_band if current else None,
         card_status=card_status(current.temperature_band) if current else None,
         change_7d=change_7d,
-        change_14d=change_7d,
+        change_14d=change_14d,
         turning_point_status=turning_status,
         trend=tuple(trend),
         turning_points=tuple(turning_points),
@@ -297,7 +298,7 @@ def explain_turning_point(
     direction_word = "上升" if direction == "改善" else "下降"
     leaning = "偏合作" if direction == "改善" else "偏冲突"
     summary = (
-        f"这段趋势中，{pool.display_name(pair_id)}关系温度{direction_word}。"
+        f"这段趋势中，{pool.display_name(pair_id)}关系指数{direction_word}。"
         f"最近 7 天相比前 7 天，“{driver_names}”等{leaning}事件增加，相关报道线索可能推动了这段变化。"
     )
     return TurningPoint(
@@ -500,10 +501,10 @@ def url_title(url: str) -> str:
     return " ".join(words[:14])
 
 
-def change_status(trend: list[DailyTrendPoint]) -> ChangeStatus:
-    if len(trend) <= TREND_SEGMENT_DAYS:
+def change_status(trend: list[DailyTrendPoint], days: int) -> ChangeStatus:
+    if len(trend) <= days:
         return "平稳"
-    delta = trend[-1].relationship_temperature - trend[-1 - TREND_SEGMENT_DAYS].relationship_temperature
+    delta = trend[-1].relationship_temperature - trend[-1 - days].relationship_temperature
     return direction_for_delta(delta)
 
 

@@ -12,26 +12,22 @@ import {
 } from "react";
 
 import { chartPath, chartPoints, type ChartPoint } from "@/lib/chart";
-import type { FeaturedPair, RelationshipPayload, TemperatureBand, TrendApiResponse, TurningPoint } from "@/lib/types";
+import type {
+  AiExplanationResponse,
+  FeaturedPair,
+  RelationshipPayload,
+  TrendApiResponse,
+  TurningPoint
+} from "@/lib/types";
 
-const bandClass: Record<string, string> = {
-  明显偏冲突: "band-red",
-  偏冲突: "band-orange",
-  接近中性: "band-gray",
-  偏合作: "band-blue",
-  明显偏合作: "band-green"
-};
-
-const bandColor: Record<TemperatureBand, string> = {
-  明显偏冲突: "#c4403a",
-  偏冲突: "#d06c2f",
-  接近中性: "#68727d",
-  偏合作: "#2d6cdf",
-  明显偏合作: "#2f8f5b"
-};
+const indexBlue = "#4A7FA5";
+const indexGray = "#9CA3AF";
+const indexRed = "#C4563B";
 
 type ChartRangeDays = 90 | 30 | 15;
 const chartRanges: ChartRangeDays[] = [90, 30, 15];
+const currentAiPromptVersion = "report-cn-v4";
+const aiWarmupConcurrency = 2;
 const objectFlags: Record<string, string> = {
   chn: "🇨🇳",
   usa: "🇺🇸",
@@ -48,6 +44,32 @@ export default function Page() {
   return <TrendApp />;
 }
 
+function indexVisualBand(value: number | null | undefined): "band-cold" | "band-neutral" | "band-hot" {
+  if (value === null || value === undefined) {
+    return "band-neutral";
+  }
+  if (value >= 70) {
+    return "band-hot";
+  }
+  if (value < 50) {
+    return "band-cold";
+  }
+  return "band-neutral";
+}
+
+function indexVisualColor(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return indexGray;
+  }
+  if (value >= 70) {
+    return indexRed;
+  }
+  if (value < 50) {
+    return indexBlue;
+  }
+  return indexGray;
+}
+
 function TrendApp() {
   const [data, setData] = useState<TrendApiResponse | null>(null);
   const [selectedPair, setSelectedPair] = useState("chn_usa");
@@ -60,10 +82,75 @@ function TrendApp() {
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [chartRangeDays, setChartRangeDays] = useState<ChartRangeDays>(90);
   const [methodOpen, setMethodOpen] = useState(true);
+  const [contentUpdated, setContentUpdated] = useState(false);
+  const [aiPendingKeys, setAiPendingKeys] = useState<Set<string>>(() => new Set());
+  const [aiMessage, setAiMessage] = useState<string | null>(null);
   const explanationRef = useRef<HTMLElement | null>(null);
   const shareResetTimer = useRef<number | null>(null);
+  const contentUpdateTimer = useRef<number | null>(null);
+  const draftAutoLoadTimer = useRef<number | null>(null);
+  const hasLoadedOnce = useRef(false);
+  const requestedAiKeys = useRef<Set<string>>(new Set());
 
-  const loadPair = useCallback(async (pair: string) => {
+  const markAiPending = useCallback((requestKey: string, pending: boolean) => {
+    setAiPendingKeys((previous) => {
+      const next = new Set(previous);
+      if (pending) {
+        next.add(requestKey);
+      } else {
+        next.delete(requestKey);
+      }
+      return next;
+    });
+  }, []);
+
+  const requestAiForTurningPoint = useCallback(async (
+    pairId: string,
+    turningPointDate: string,
+    options: { showMessage?: boolean } = {}
+  ) => {
+    const requestKey = aiRequestKey(pairId, turningPointDate);
+    if (requestedAiKeys.current.has(requestKey)) {
+      return;
+    }
+    requestedAiKeys.current.add(requestKey);
+    markAiPending(requestKey, true);
+    try {
+      const response = await requestAiExplanation(pairId, turningPointDate);
+      const updatedTurningPoint = response.turningPoint;
+      if (updatedTurningPoint) {
+        setData((previous) => replaceTurningPoint(previous, pairId, updatedTurningPoint));
+      }
+      if (options.showMessage ?? true) {
+        setAiMessage(response.message);
+      }
+    } catch (caught: unknown) {
+      if (options.showMessage ?? true) {
+        setAiMessage(caught instanceof Error ? caught.message : "解读生成失败，已保留规则版解释。");
+      }
+    } finally {
+      markAiPending(requestKey, false);
+    }
+  }, [markAiPending]);
+
+  const warmRelationshipAi = useCallback((nextRelationship: RelationshipPayload | null) => {
+    if (nextRelationship === null) {
+      return;
+    }
+    const pendingPoints = nextRelationship.turning_points.filter(needsAiRefresh);
+    if (pendingPoints.length === 0) {
+      return;
+    }
+    void runWithConcurrency(pendingPoints, aiWarmupConcurrency, (point) =>
+      requestAiForTurningPoint(nextRelationship.pair_id, point.date, { showMessage: false })
+    );
+  }, [requestAiForTurningPoint]);
+
+  const loadPair = useCallback(async (pair: string, options: { warmAi?: boolean } = {}) => {
+    if (draftAutoLoadTimer.current !== null) {
+      window.clearTimeout(draftAutoLoadTimer.current);
+      draftAutoLoadTimer.current = null;
+    }
     setSelectedPair(pair);
     setLoading(true);
     setSlow(false);
@@ -85,18 +172,35 @@ function TrendApp() {
       const url = new URL(window.location.href);
       url.searchParams.set("pair", payload.pairId);
       window.history.replaceState({}, "", url);
+      if (hasLoadedOnce.current) {
+        if (contentUpdateTimer.current !== null) {
+          window.clearTimeout(contentUpdateTimer.current);
+        }
+        setContentUpdated(true);
+        contentUpdateTimer.current = window.setTimeout(() => setContentUpdated(false), 900);
+      }
+      hasLoadedOnce.current = true;
+      if (options.warmAi) {
+        warmRelationshipAi(payload.relationship);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "unknown error");
     } finally {
       window.clearTimeout(slowTimer);
       setLoading(false);
     }
-  }, []);
+  }, [warmRelationshipAi]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     void loadPair(params.get("pair") ?? "chn_usa");
   }, [loadPair]);
+
+  useEffect(() => () => {
+    if (draftAutoLoadTimer.current !== null) {
+      window.clearTimeout(draftAutoLoadTimer.current);
+    }
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 820px)");
@@ -122,7 +226,6 @@ function TrendApp() {
     [candidates]
   );
   const relationship = data?.relationship ?? null;
-  const draftPairIsLegal = isLegalPair(draftObjectA, draftObjectB, legalPairIds);
   const hasNoData = data?.cacheStatus === "missing" || relationship?.turning_point_status === "no_data";
   const initialLoading = loading && data === null;
   const panelLoading = loading && data !== null;
@@ -144,12 +247,42 @@ function TrendApp() {
     });
   }, [relationship, chartRangeDays]);
 
-  function analyzeDraftPair() {
-    if (!draftPairIsLegal) {
+  useEffect(() => {
+    if (relationship === null || selectedTurning === null) {
       return;
     }
-    const pair = canonicalPairId(draftObjectA, draftObjectB);
-    void loadPair(pair);
+    if (!needsAiRefresh(selectedTurning)) {
+      return;
+    }
+    setAiMessage(null);
+    void requestAiForTurningPoint(relationship.pair_id, selectedTurning.date);
+  }, [relationship, requestAiForTurningPoint, selectedTurning]);
+
+  function queueDraftPairAnalysis(leftObject: string, rightObject: string) {
+    if (!isLegalPair(leftObject, rightObject, legalPairIds)) {
+      return;
+    }
+    const pair = canonicalPairId(leftObject, rightObject);
+    if (pair === selectedPair) {
+      return;
+    }
+    if (draftAutoLoadTimer.current !== null) {
+      window.clearTimeout(draftAutoLoadTimer.current);
+    }
+    draftAutoLoadTimer.current = window.setTimeout(() => {
+      draftAutoLoadTimer.current = null;
+      void loadPair(pair, { warmAi: true });
+    }, 220);
+  }
+
+  function updateDraftObjectA(nextObject: string) {
+    setDraftObjectA(nextObject);
+    queueDraftPairAnalysis(nextObject, draftObjectB);
+  }
+
+  function updateDraftObjectB(nextObject: string) {
+    setDraftObjectB(nextObject);
+    queueDraftPairAnalysis(draftObjectA, nextObject);
   }
 
   async function shareCurrentUrl() {
@@ -171,14 +304,19 @@ function TrendApp() {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">关系温度计</p>
-          <h1>双边关系趋势</h1>
+        <div className="brand-block">
+          <span className="brand-mark" aria-hidden="true">
+            <span />
+          </span>
+          <div>
+            <h1>双边关系看板</h1>
+            <p className="topbar-subtitle">基于全球新闻信号，追踪主要国家双边关系动态</p>
+          </div>
         </div>
-        <div className="updated">
-          {relationship?.data_start && relationship.data_end
-            ? `${relationship.data_start} 至 ${relationship.data_end}`
-            : "等待缓存数据"}
+        <div className="updated live-status">
+          <span className="live-dot" aria-hidden="true" />
+          <span>实时更新</span>
+          <span>{relationship?.data_end ? `最新数据：${relationship.data_end}` : "等待缓存数据"}</span>
         </div>
       </header>
 
@@ -196,50 +334,9 @@ function TrendApp() {
             payload={data?.featuredCards.find((card) => card.pair_id === pair.pairId) ?? null}
             active={pair.pairId === selectedPair}
             candidateLabels={candidateLabels}
-            onClick={() => void loadPair(pair.pairId)}
+            onClick={() => void loadPair(pair.pairId, { warmAi: true })}
           />
         ))}
-      </section>
-
-      <section className="controls-row" aria-label="国家对选择器">
-        <select
-          value={draftObjectA}
-          disabled={candidates.length < 2}
-          onChange={(event) => setDraftObjectA(event.target.value)}
-        >
-          {candidates.map((candidate) => (
-            <option
-              key={candidate.id}
-              value={candidate.id}
-              disabled={!isLegalPair(candidate.id, draftObjectB, legalPairIds)}
-            >
-              {candidate.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={draftObjectB}
-          disabled={candidates.length < 2}
-          onChange={(event) => setDraftObjectB(event.target.value)}
-        >
-          {candidates.map((candidate) => (
-            <option
-              key={candidate.id}
-              value={candidate.id}
-              disabled={!isLegalPair(draftObjectA, candidate.id, legalPairIds)}
-            >
-              {candidate.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="analysis-button"
-          disabled={!draftPairIsLegal || loading}
-          onClick={analyzeDraftPair}
-        >
-          分析
-        </button>
       </section>
 
       {!loading && candidates.length < 2 ? <Notice tone="error" text="候选对象配置不足，暂时无法选择关系组合。" /> : null}
@@ -249,14 +346,19 @@ function TrendApp() {
         <Notice tone="info" text="近 90 天未检测到明显趋势段。" />
       ) : null}
 
-      <section className="workspace">
+      <section className={`workspace ${contentUpdated ? "content-updated" : ""}`}>
         <RelationshipChart
           relationship={relationship}
           selectedTurningDate={selectedTurningDate}
           onSelectTurning={selectTurningPoint}
           rangeDays={chartRangeDays}
           onRangeChange={setChartRangeDays}
-          candidateLabels={candidateLabels}
+          candidates={candidates}
+          legalPairIds={legalPairIds}
+          draftObjectA={draftObjectA}
+          draftObjectB={draftObjectB}
+          onDraftObjectAChange={updateDraftObjectA}
+          onDraftObjectBChange={updateDraftObjectB}
           shareStatus={shareStatus}
           onShare={() => void shareCurrentUrl()}
           loading={panelLoading}
@@ -266,6 +368,8 @@ function TrendApp() {
           relationship={relationship}
           turningPoint={selectedTurning}
           hasSelectedTurning={selectedTurningDate !== null}
+          aiPending={selectedTurning ? aiPendingKeys.has(aiRequestKey(relationship?.pair_id ?? "", selectedTurning.date)) : false}
+          aiMessage={aiMessage}
           loading={panelLoading}
         />
       </section>
@@ -275,23 +379,39 @@ function TrendApp() {
         open={methodOpen}
         onToggle={(event) => setMethodOpen(event.currentTarget.open)}
       >
-        <summary>数据来源与限制</summary>
-        <p>
-          趋势计算方法：读取本地 MapNews 共享数据库中的 GDELT 结构化事件，将事件的 GoldsteinScale
-          合作/冲突信号按报道热度加权汇总到每日，再映射为 0-100 关系温度，50 为中性，并使用 14
-          日滚动平均形成趋势线。趋势段解释只比较前后 7 天事件类型和来源线索，不代表确定因果。
-        </p>
-        <p>
-          方法来源参考{" "}
-          <a href="https://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf" target="_blank" rel="noreferrer">
-            GDELT 2.0 Event Codebook
-          </a>
-          {" "}中的 GoldsteinScale 字段，以及{" "}
-          <a href="https://parusanalytics.com/eventdata/data.dir/cameo.html" target="_blank" rel="noreferrer">
-            CAMEO 事件编码框架
-          </a>
-          。关系温度是媒体事件信号，不是官方外交结论；当前库没有新闻正文和标题，重点报道只展示来源链接线索。
-        </p>
+        <summary>数据来源与方法说明</summary>
+        <p className="method-lead">关系指数基于全球新闻报道计算，反映媒体对两国关系的信号——不代表官方外交立场。</p>
+        <div className="method-grid">
+          <section>
+            <h3>指数是怎么来的</h3>
+            <p>
+              每天从全球新闻数据库中抓取涉及两国的报道，识别其中的合作或冲突信号，按报道热度加权后映射为 0—100 的指数。
+              50 为中性，高于 50 偏友好，低于 50 偏紧张。用 14 天滚动平均展示，以平滑单日波动。
+            </p>
+          </section>
+          <section>
+            <h3>AI 做了什么</h3>
+            <p>
+              AI 根据新闻标题和摘要，自动生成关系变化的中文解读，帮你快速理解指数背后发生了什么。
+              它只负责总结，不判断事件的确切因果，也不读取新闻全文。
+            </p>
+          </section>
+          <section>
+            <h3>使用前须知</h3>
+            <p>
+              指数反映的是“媒体在重点报道什么”，不等于两国关系的实际状态。重大事件密集报道时，指数可能出现短期大幅波动。
+              数据方法参考{" "}
+              <a href="https://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf" target="_blank" rel="noreferrer">
+                GDELT 2.0
+              </a>
+              {" "}与{" "}
+              <a href="https://parusanalytics.com/eventdata/data.dir/cameo.html" target="_blank" rel="noreferrer">
+                CAMEO 事件编码框架
+              </a>
+              。
+            </p>
+          </section>
+        </div>
       </details>
     </main>
   );
@@ -310,11 +430,11 @@ function RelationshipCard({
   candidateLabels: Map<string, string>;
   onClick: () => void;
 }) {
-  const band = payload?.current_band ?? "接近中性";
+  const visualBand = indexVisualBand(payload?.current_temperature);
   const yesterdayDelta = dailyDelta(payload);
   const temperature = payload?.current_temperature?.toFixed(1) ?? "--";
   return (
-    <button type="button" className={`relation-card ${bandClass[band]} ${active ? "active" : ""}`} onClick={onClick}>
+    <button type="button" className={`relation-card ${visualBand} ${active ? "active" : ""}`} onClick={onClick}>
       <span className="card-top-row">
         <span className="card-country-pair">
           {pair.objects.map((objectId, index) => (
@@ -326,7 +446,7 @@ function RelationshipCard({
           ))}
         </span>
         <span className="card-index">
-          <span>温度</span>
+          <span>指数</span>
           <strong>{temperature}</strong>
           <span className={`card-delta-badge ${yesterdayDelta.kind}`}>{yesterdayDelta.label.replace("较昨日 ", "")}</span>
         </span>
@@ -350,33 +470,18 @@ function MiniSparkline({ trend }: { trend: RelationshipPayload["trend"] }) {
   );
 }
 
-function FlagPair({ objects }: { objects: readonly string[] }) {
-  return (
-    <span className="pair-flags" aria-hidden="true">
-      {objects.map((objectId) => (
-        <span key={objectId} className="flag-item">
-          <span className="flag-icon">{objectFlags[objectId] ?? ""}</span>
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function pairDisplayName(
-  objects: readonly string[],
-  candidateLabels: Map<string, string>,
-  separator = " - "
-): string {
-  return objects.map((objectId) => candidateLabels.get(objectId) ?? objectId.toUpperCase()).join(separator);
-}
-
 function RelationshipChart({
   relationship,
   selectedTurningDate,
   onSelectTurning,
   rangeDays,
   onRangeChange,
-  candidateLabels,
+  candidates,
+  legalPairIds,
+  draftObjectA,
+  draftObjectB,
+  onDraftObjectAChange,
+  onDraftObjectBChange,
   shareStatus,
   onShare,
   loading
@@ -386,14 +491,19 @@ function RelationshipChart({
   onSelectTurning: (date: string) => void;
   rangeDays: ChartRangeDays;
   onRangeChange: (rangeDays: ChartRangeDays) => void;
-  candidateLabels: Map<string, string>;
+  candidates: TrendApiResponse["candidatePool"]["objects"];
+  legalPairIds: Set<string>;
+  draftObjectA: string;
+  draftObjectB: string;
+  onDraftObjectAChange: (objectId: string) => void;
+  onDraftObjectBChange: (objectId: string) => void;
   shareStatus: "idle" | "copied" | "failed";
   onShare: () => void;
   loading: boolean;
 }) {
-  const width = 720;
-  const height = 360;
-  const padding = 48;
+  const width = 880;
+  const height = 380;
+  const padding = 56;
   const visibleTrend = visibleTrendForRange(relationship?.trend ?? [], rangeDays);
   const points = chartPoints(visibleTrend, width, height, padding);
   const path = chartPath(points);
@@ -407,11 +517,16 @@ function RelationshipChart({
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const [rangeFading, setRangeFading] = useState(false);
   const relationshipObjects = relationship ? [relationship.object_a, relationship.object_b] : [];
-  const chartTitle = relationship
-    ? `${pairDisplayName(relationshipObjects, candidateLabels, "-")}关系温度趋势`
-    : "暂无数据";
-  const chartAccent = relationship?.current_band ? bandColor[relationship.current_band] : bandColor["接近中性"];
+  const chartAccent = indexVisualColor(relationship?.current_temperature);
   const chartStyle = { "--chart-accent": chartAccent } as CSSProperties;
+  const currentDelta = dailyDelta(relationship);
+  const scoreValue = relationship?.current_temperature?.toFixed(1) ?? "--";
+  const scoreDateLabel = relationship?.data_end ? `${relationship.data_end}日指数` : "等待数据";
+  const sideLabels = [
+    { tick: 100, label: "友好" },
+    { tick: 50, label: "中性" },
+    { tick: 0, label: "对立" }
+  ];
 
   useEffect(() => {
     setRangeFading(true);
@@ -437,33 +552,62 @@ function RelationshipChart({
   }
 
   return (
-    <section className={`chart-panel ${loading ? "panel-busy" : ""}`} style={chartStyle} aria-label="关系温度趋势图">
+    <section className={`chart-panel ${loading ? "panel-busy" : ""}`} style={chartStyle} aria-label="关系指数趋势图">
       <div className="panel-heading chart-heading">
-        <div className="chart-identity">
-          <FlagPair objects={relationshipObjects} />
-          <div>
-            <h2>{chartTitle}</h2>
-          </div>
-        </div>
-        <div className="chart-actions">
-          <div className="score-block">
-            <span>{relationship?.data_end ? `${relationship.data_end}日温度` : "等待数据"}</span>
-            <strong>{relationship?.current_temperature?.toFixed(1) ?? "--"}</strong>
-          </div>
-        </div>
-      </div>
-      <div className="chart-toolbar">
-        <div className="range-control" aria-label="图表范围">
-          {chartRanges.map((days) => (
-            <button
-              key={days}
-              type="button"
-              className={rangeDays === days ? "active" : ""}
-              onClick={() => onRangeChange(days)}
+        <div className="chart-heading-row chart-heading-primary">
+          <div className="chart-selector-row" aria-label="国家对选择器">
+            <select
+              value={draftObjectA}
+              disabled={candidates.length < 2}
+              onChange={(event) => onDraftObjectAChange(event.target.value)}
             >
-              {days}日
-            </button>
-          ))}
+              {candidates.map((candidate) => (
+                <option
+                  key={candidate.id}
+                  value={candidate.id}
+                  disabled={!isLegalPair(candidate.id, draftObjectB, legalPairIds)}
+                >
+                  {objectFlags[candidate.id] ? `${objectFlags[candidate.id]} ` : ""}{candidate.label}
+                </option>
+              ))}
+            </select>
+            <span className="chart-pair-divider" aria-hidden="true">—</span>
+            <select
+              value={draftObjectB}
+              disabled={candidates.length < 2}
+              onChange={(event) => onDraftObjectBChange(event.target.value)}
+            >
+              {candidates.map((candidate) => (
+                <option
+                  key={candidate.id}
+                  value={candidate.id}
+                  disabled={!isLegalPair(draftObjectA, candidate.id, legalPairIds)}
+                >
+                  {objectFlags[candidate.id] ? `${objectFlags[candidate.id]} ` : ""}{candidate.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="range-control chart-range-control" aria-label="图表范围">
+            {chartRanges.map((days) => (
+              <button
+                key={days}
+                type="button"
+                className={rangeDays === days ? "active" : ""}
+                onClick={() => onRangeChange(days)}
+              >
+                {days}日
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="chart-heading-row chart-heading-secondary">
+          <h2>{relationshipObjects.length > 0 ? "关系指数趋势" : "暂无数据"}</h2>
+          <div className="score-inline" aria-label={scoreDateLabel}>
+            <span className="score-date">{scoreDateLabel}</span>
+            <strong>{scoreValue}</strong>
+            <span className={`score-delta ${currentDelta.kind}`}>{currentDelta.label.replace("较昨日 ", "")}</span>
+          </div>
         </div>
       </div>
       <svg
@@ -475,9 +619,9 @@ function RelationshipChart({
       >
         <defs>
           <linearGradient id="trendAreaGradient" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={chartAccent} stopOpacity="0.24" />
-            <stop offset="62%" stopColor={chartAccent} stopOpacity="0.08" />
-            <stop offset="100%" stopColor={chartAccent} stopOpacity="0" />
+            <stop offset="0%" stopColor="#374151" stopOpacity="0.13" />
+            <stop offset="62%" stopColor="#374151" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="#374151" stopOpacity="0" />
           </linearGradient>
         </defs>
         <rect x="0" y="0" width={width} height={height} className="chart-surface" />
@@ -499,15 +643,17 @@ function RelationshipChart({
             </g>
           );
         })}
-        <text
-          x="18"
-          y={height / 2}
-          className="axis-title"
-          textAnchor="middle"
-          transform={`rotate(-90 18 ${height / 2})`}
-        >
-          关系温度
-        </text>
+        {sideLabels.map((label) => (
+          <text
+            key={label.tick}
+            x={width - padding + 7}
+            y={temperatureToY(label.tick, height, padding) + 4}
+            className={`axis-side-label axis-side-label-${label.tick}`}
+            textAnchor="start"
+          >
+            {label.label}
+          </text>
+        ))}
         {areaPath ? <path d={areaPath} className="trend-area" /> : null}
         <path d={path} className="trend-line history" />
         <path d={path} className="trend-line current" />
@@ -610,7 +756,7 @@ function HoverGuide({
       <g transform={`translate(${tooltipX}, ${tooltipY})`} className="hover-tooltip">
         <rect width={tooltipWidth} height={tooltipHeight} rx="6" />
         <text x="10" y="18">{point.date}</text>
-        <text x="10" y="34">{`温度 ${point.temperature.toFixed(1)}`}</text>
+        <text x="10" y="34">{`指数 ${point.temperature.toFixed(1)}`}</text>
       </g>
     </g>
   );
@@ -628,8 +774,16 @@ const ExplanationPanel = forwardRef<HTMLElement, {
   relationship: RelationshipPayload | null;
   turningPoint: TurningPoint | null;
   hasSelectedTurning: boolean;
+  aiPending: boolean;
+  aiMessage: string | null;
   loading: boolean;
-}>(function ExplanationPanel({ relationship, turningPoint, hasSelectedTurning, loading }, ref) {
+}>(function ExplanationPanel({ relationship, turningPoint, hasSelectedTurning, aiPending, aiMessage, loading }, ref) {
+  const [activeTab, setActiveTab] = useState<"analysis" | "reports">("analysis");
+
+  useEffect(() => {
+    setActiveTab("analysis");
+  }, [relationship?.pair_id, turningPoint?.date]);
+
   if (relationship === null || relationship.turning_point_status === "no_data") {
     return (
       <section ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
@@ -652,33 +806,90 @@ const ExplanationPanel = forwardRef<HTMLElement, {
       </section>
     );
   }
+  const hasAiSummary = turningPoint.ai_status === "ready" && Boolean(turningPoint.ai_summary);
+  const summary = relationshipIndexCopy(cleanRelativeTimePrefix(hasAiSummary ? turningPoint.ai_summary : turningPoint.summary));
+  const visibleEvidence = (turningPoint.ai_evidence ?? []).map(relationshipIndexCopy);
+  const mainEvent = relationshipIndexCopy(turningPoint.ai_main_event);
+  const directionClass = turningPoint.direction === "改善" ? "improve" : "worsen";
+  const directionTitle = turningPoint.direction === "改善" ? "关系改善" : "关系恶化";
   return (
     <section ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
       <div className="explain-heading">
-        <h2>{turningPoint.direction === "改善" ? "关系改善" : "关系恶化"} {formatDelta(turningPoint.delta)}</h2>
-        <p className="eyebrow">{turningPoint.previous_date} 至 {turningPoint.date}</p>
+        <div className="explain-heading-row">
+          <h2>{directionTitle}</h2>
+          <p className="eyebrow">{compactDateRange(turningPoint.previous_date, turningPoint.date)}</p>
+        </div>
+        <strong className={`explain-delta ${directionClass}`}>{formatDelta(turningPoint.delta)}</strong>
       </div>
-      <p>{turningPoint.summary}</p>
-      <div className="driver-list">
-        {turningPoint.drivers.map((driver) => (
-          <span key={`${driver.event_root_code}-${driver.label}`}>{driver.label}</span>
-        ))}
+
+      <div className="explain-tabs" role="tablist" aria-label="解释器内容">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "analysis"}
+          className={activeTab === "analysis" ? "active" : ""}
+          onClick={() => setActiveTab("analysis")}
+        >
+          趋势解读
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "reports"}
+          className={activeTab === "reports" ? "active" : ""}
+          onClick={() => setActiveTab("reports")}
+        >
+          相关报道
+        </button>
       </div>
-      <div className="reports-heading">
-        <h3>相关报道线索</h3>
-        <p>按变化窗口内、方向一致、匹配驱动事件和来源多样性排序；点击打开原始报道。</p>
-      </div>
-      <div className="reports">
-        {turningPoint.reports.map((report) => (
-          <a key={report.source_url} href={report.source_url} target="_blank" rel="noreferrer">
-            <strong>{report.url_title}</strong>
-            <small className="report-meta">
-              <span>{report.source_domain} · {report.event_type}</span>
-              <time dateTime={report.date}>{report.date}</time>
-            </small>
-          </a>
-        ))}
-      </div>
+
+      {activeTab === "analysis" ? (
+        <div className="explain-tab-panel analysis-tab" role="tabpanel">
+          {hasAiSummary && mainEvent ? (
+            <p className="ai-main-event">主线：{mainEvent}</p>
+          ) : null}
+          <p className="explain-summary">{summary}</p>
+          {aiPending ? <p className="ai-status">解读生成中，当前先显示规则版解释。</p> : null}
+          {aiMessage ? <p className="ai-status warn">{aiMessage}</p> : null}
+          {hasAiSummary && visibleEvidence.length ? (
+            <div className="evidence-block">
+              <h3>证据线索</h3>
+              <ul className="ai-evidence-list" aria-label="证据线索">
+                {visibleEvidence.map((evidence) => {
+                  const parsedEvidence = splitEvidenceLine(evidence);
+                  return (
+                    <li key={evidence}>
+                      {parsedEvidence.date ? <time dateTime={parsedEvidence.date}>{parsedEvidence.date}</time> : null}
+                      {parsedEvidence.date ? " " : null}
+                      <strong>{parsedEvidence.text}</strong>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+          <div className="driver-list">
+            {turningPoint.drivers.map((driver) => (
+              <span key={`${driver.event_root_code}-${driver.label}`}>{driver.label}</span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="explain-tab-panel reports-tab" role="tabpanel">
+          <div className="reports">
+            {turningPoint.reports.map((report) => (
+              <a key={report.source_url} href={report.source_url} target="_blank" rel="noreferrer">
+                <strong>{reportTitle(report)}</strong>
+                {reportSummary(report) ? <span className="report-summary">{reportSummary(report)}</span> : null}
+                <small className="report-meta">
+                  <span>{report.source_domain} · {report.event_type}</span>
+                  <time dateTime={report.date}>{report.date}</time>
+                </small>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       {loading ? <PanelLoading /> : null}
     </section>
   );
@@ -811,6 +1022,15 @@ function shortDate(value: string): string {
   return `${month}-${day}`;
 }
 
+function compactDateRange(startDate: string, endDate: string): string {
+  const [startYear] = startDate.split("-");
+  const [endYear, endMonth, endDay] = endDate.split("-");
+  if (startYear === endYear && endMonth && endDay) {
+    return `${startDate} 至 ${endMonth}-${endDay}`;
+  }
+  return `${startDate} 至 ${endDate}`;
+}
+
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -832,4 +1052,93 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(textarea);
     }
   }
+}
+
+async function requestAiExplanation(pairId: string, turningPointDate: string): Promise<AiExplanationResponse> {
+  const response = await fetch("/api/ai/explanation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pairId, turningPointDate })
+  });
+  const payload = (await response.json()) as AiExplanationResponse;
+  if (!response.ok) {
+    throw new Error(payload.message ?? `AI API ${response.status}`);
+  }
+  return payload;
+}
+
+function replaceTurningPoint(
+  previous: TrendApiResponse | null,
+  pairId: string,
+  turningPoint: TurningPoint
+): TrendApiResponse | null {
+  if (previous?.relationship?.pair_id !== pairId) {
+    return previous;
+  }
+  return {
+    ...previous,
+    relationship: {
+      ...previous.relationship,
+      turning_points: previous.relationship.turning_points.map((point) =>
+        point.date === turningPoint.date ? turningPoint : point
+      )
+    }
+  };
+}
+
+function reportTitle(report: TurningPoint["reports"][number]): string {
+  return report.chinese_title || report.resolved_title || report.url_title;
+}
+
+function reportSummary(report: TurningPoint["reports"][number]): string | null {
+  const summary = report.chinese_summary || report.short_summary || null;
+  return summary ? relationshipIndexCopy(summary) : null;
+}
+
+function aiRequestKey(pairId: string, turningPointDate: string): string {
+  return `${currentAiPromptVersion}:${pairId}:${turningPointDate}`;
+}
+
+function needsAiRefresh(turningPoint: TurningPoint): boolean {
+  const aiStatus = turningPoint.ai_status ?? "not_requested";
+  if (aiStatus === "error" || aiStatus === "missing_key") {
+    return false;
+  }
+  return aiStatus !== "ready" || turningPoint.ai_prompt_version !== currentAiPromptVersion;
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  let cursor = 0;
+  const workerCount = Math.min(concurrency, items.length);
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (cursor < items.length) {
+        const item = items[cursor];
+        cursor += 1;
+        if (item !== undefined) {
+          await worker(item);
+        }
+      }
+    })
+  );
+}
+
+function cleanRelativeTimePrefix(value: string | null | undefined): string {
+  return (value ?? "").replace(/^(近期|近来|近日|最近)[，,、\s]*/, "");
+}
+
+function relationshipIndexCopy(value: string | null | undefined): string {
+  return (value ?? "").replace(/关系温度/g, "关系指数").replace(/温度/g, "指数");
+}
+
+function splitEvidenceLine(value: string): { date: string | null; text: string } {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})[：:，,\s-]*(.+)$/);
+  if (!match) {
+    return { date: null, text: value };
+  }
+  return { date: match[1] ?? null, text: match[2]?.trim() ?? value };
 }

@@ -4,6 +4,8 @@ export type TemperatureBand = "明显偏冲突" | "偏冲突" | "接近中性" |
 export type CardStatus = "偏冲突" | "接近中性" | "偏合作";
 export type ChangeStatus = "改善" | "恶化" | "平稳";
 export type TurningPointStatus = "normal" | "data_insufficient" | "no_significant_turning_points" | "no_data";
+export type AiStatus = "not_requested" | "pending" | "ready" | "error" | "missing_key";
+export type MetadataStatus = "missing" | "ready" | "unsupported_url" | "fetch_error" | "parse_error";
 
 export interface CandidateObject {
   id: string;
@@ -52,6 +54,12 @@ export interface KeyReport {
   source_domain: string;
   source_url: string;
   url_title: string;
+  resolved_title?: string | null;
+  meta_description?: string | null;
+  short_summary?: string | null;
+  chinese_title?: string | null;
+  chinese_summary?: string | null;
+  metadata_status?: MetadataStatus;
   event_type: string;
   impact_direction: string;
   goldstein_scale: number;
@@ -73,6 +81,12 @@ export interface TurningPoint {
   change_end: string;
   drivers: DriverEvent[];
   reports: KeyReport[];
+  ai_status?: AiStatus;
+  ai_summary?: string | null;
+  ai_main_event?: string | null;
+  ai_evidence?: string[];
+  ai_generated_at?: string | null;
+  ai_prompt_version?: string | null;
 }
 
 export interface RelationshipPayload {
@@ -102,4 +116,10 @@ export interface TrendApiResponse {
   candidatePool: CandidatePoolResponse;
   featuredCards: RelationshipPayload[];
   relationship: RelationshipPayload | null;
+}
+
+export interface AiExplanationResponse {
+  status: AiStatus | "error";
+  message: string | null;
+  turningPoint: TurningPoint | null;
 }

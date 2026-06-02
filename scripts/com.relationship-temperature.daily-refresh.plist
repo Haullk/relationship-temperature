@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.relationship-temperature.daily-refresh</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/tianhaoran/Documents/国际关系趋势</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/tianhaoran/Documents/国际关系趋势/.venv/bin/python</string>
+    <string>-m</string>
+    <string>relationship_temperature.scheduled_refresh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>10</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/tianhaoran/Documents/国际关系趋势/logs/daily-refresh.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/tianhaoran/Documents/国际关系趋势/logs/daily-refresh.err.log</string>
+</dict>
+</plist>

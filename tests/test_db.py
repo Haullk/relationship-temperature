@@ -13,6 +13,7 @@ def test_schema_defines_independent_cache_table() -> None:
     sql = schema_sql().lower()
 
     assert "create table if not exists relationship_trend_cache" in sql
+    assert "create table if not exists relationship_report_metadata" in sql
+    assert "create table if not exists relationship_ai_explanation_cache" in sql
     assert "payload jsonb not null" in sql
     assert "gdelt_events_clean" not in sql
-

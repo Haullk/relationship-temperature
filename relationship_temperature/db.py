@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from relationship_temperature.models import RelationshipResult
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = PROJECT_ROOT / "migrations" / "001_relationship_cache.sql"
+MIGRATIONS_DIR = PROJECT_ROOT / "migrations"
 
 REQUIRED_GDELT_FIELDS = frozenset(
     {
@@ -69,7 +69,7 @@ def connect() -> Any:
 
 
 def schema_sql() -> str:
-    return SCHEMA_PATH.read_text(encoding="utf-8")
+    return "\n\n".join(path.read_text(encoding="utf-8") for path in sorted(MIGRATIONS_DIR.glob("*.sql")))
 
 
 def ensure_cache_schema(conn: ConnectionLike) -> None:
@@ -137,4 +137,3 @@ def write_cache_transaction(conn: ConnectionLike, results: Iterable[Relationship
                 """,
                 row,
             )
-

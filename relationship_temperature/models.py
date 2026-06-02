@@ -10,6 +10,8 @@ CardStatus = Literal["偏冲突", "接近中性", "偏合作"]
 ChangeStatus = Literal["改善", "恶化", "平稳"]
 TurningPointStatus = Literal["normal", "data_insufficient", "no_significant_turning_points", "no_data"]
 CacheStatus = Literal["fresh", "stale", "missing"]
+AiStatus = Literal["not_requested", "pending", "ready", "error", "missing_key"]
+MetadataStatus = Literal["missing", "ready", "unsupported_url", "fetch_error", "parse_error"]
 
 
 @dataclass(frozen=True)
@@ -93,6 +95,12 @@ class KeyReport:
     goldstein_scale: float
     num_mentions: int
     num_articles: int
+    resolved_title: str | None = None
+    meta_description: str | None = None
+    short_summary: str | None = None
+    chinese_title: str | None = None
+    chinese_summary: str | None = None
+    metadata_status: MetadataStatus = "missing"
 
 
 @dataclass(frozen=True)
@@ -110,6 +118,12 @@ class TurningPoint:
     change_end: Date
     drivers: tuple[DriverEvent, ...]
     reports: tuple[KeyReport, ...]
+    ai_status: AiStatus = "not_requested"
+    ai_summary: str | None = None
+    ai_main_event: str | None = None
+    ai_evidence: tuple[str, ...] = ()
+    ai_generated_at: DateTime | None = None
+    ai_prompt_version: str | None = None
 
 
 @dataclass(frozen=True)
