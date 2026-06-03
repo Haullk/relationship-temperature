@@ -696,7 +696,39 @@ crontab -e
 
 ## 11. Git 更新流程
 
-### 11.1 第一阶段：手动更新
+### 11.1 当前推荐流程：手动触发部署
+
+当前生产环境采用“本地开发、GitHub 存代码、VPS 只读拉取并构建”的模式。
+
+```text
+Mac 本地代码
+  -> git commit
+  -> git push origin main
+  -> 手动 SSH 到 VPS 执行部署脚本
+  -> VPS 拉取 GitHub 最新 main，构建并重启服务
+```
+
+注意：`git push origin main` 本身不会让 VPS 自动上线。推送后，需要手动执行下面的部署命令。
+
+本地发布前先检查：
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+提交并推送：
+
+```bash
+git status
+git add .
+git commit -m "Update production version"
+git push origin main
+```
+
+到 VPS 部署：
 
 ```bash
 ssh geoprizm-vps
@@ -705,11 +737,125 @@ cd /var/www/relationship-temperature
 scripts/deploy_production.sh
 ```
 
-该脚本会执行 `git fetch`、`git reset --hard origin/main`、`npm ci`、`npm run build`，并重启 `relationship-temperature.service`。
+该脚本会执行：
 
-### 11.2 第二阶段：GitHub Actions 自动部署
+```text
+git fetch --prune origin
+git reset --hard origin/main
+npm ci
+npm run build
+systemctl restart relationship-temperature.service
+```
 
-后续可配置 GitHub Actions：
+生产机的 Git remote 使用 HTTPS 只读拉取：
+
+```text
+origin fetch: https://github.com/Haullk/relationship-temperature.git
+origin push:  DISABLED
+```
+
+这样可以避免在 VPS 上误推代码。生产机只负责拉取、构建和运行，不应该在 VPS 上手工修改业务代码。
+
+### 11.2 环境变量和密钥不会被 Git 覆盖
+
+生产环境的真实密钥不放在 Git 仓库里，而是放在：
+
+```text
+/etc/relationship-temperature.env
+```
+
+systemd 服务通过下面配置读取它：
+
+```ini
+EnvironmentFile=/etc/relationship-temperature.env
+```
+
+这个文件里包含：
+
+- `GDELT_DATABASE_URL`
+- 数据库用户名和密码
+- `DEEPSEEK_API_KEY`
+- `DEEPSEEK_MODEL`
+- `DEEPSEEK_API_URL`
+- `PYTHON_BIN`
+
+部署脚本只会重置 `/var/www/relationship-temperature` 目录中的 Git 代码，不会修改 `/etc/relationship-temperature.env`，因此正常版本更新不会覆盖 AI API key、数据库连接密码或其他生产密钥。
+
+必须遵守：
+
+- 不要把真实 `.env`、`.env.local`、API key、数据库密码提交到 GitHub。
+- `.env.example` 只能放占位符。
+- 如果需要修改生产密钥，单独编辑 `/etc/relationship-temperature.env`，然后重启服务：
+
+```bash
+sudo nano /etc/relationship-temperature.env
+sudo systemctl restart relationship-temperature.service
+```
+
+### 11.3 检查本地、GitHub、VPS 是否一致
+
+本地查看当前 commit：
+
+```bash
+git rev-parse HEAD
+```
+
+查看 GitHub main：
+
+```bash
+git ls-remote origin refs/heads/main
+```
+
+查看 VPS 当前 commit：
+
+```bash
+ssh geoprizm-vps
+cd /var/www/relationship-temperature
+git rev-parse HEAD
+git status --short
+```
+
+如果三边 commit 一致，并且 VPS `git status --short` 没有输出，就说明代码版本一致。
+
+也可以检查线上服务：
+
+```bash
+systemctl is-active relationship-temperature.service
+curl -I https://www.geoprizm.com/
+curl https://www.geoprizm.com/api/trend?pair=chn_usa
+```
+
+### 11.4 常见问题
+
+如果本地 `git push` 后线上没有变化：
+
+- 这是正常的，当前没有自动部署。
+- SSH 到 VPS 执行 `scripts/deploy_production.sh`。
+
+如果部署后页面报错但服务还在：
+
+- 看服务日志：
+
+```bash
+journalctl -u relationship-temperature.service -n 100 --no-pager
+```
+
+如果部署脚本因为 Git 失败：
+
+- 确认 VPS 可以访问 GitHub：
+
+```bash
+git ls-remote https://github.com/Haullk/relationship-temperature.git refs/heads/main
+```
+
+如果误在 VPS 上修改了代码：
+
+- 不要把 VPS 当开发环境。
+- 先确认没有需要保留的改动，再用部署脚本回到 GitHub 版本。
+
+### 11.5 第二阶段：GitHub Actions 自动部署
+
+后续如果希望 `git push origin main` 后自动上线，可以配置 GitHub Actions：
 
 ```text
 push main
@@ -722,6 +868,8 @@ push main
 - VPS 上配置 deploy key。
 - GitHub Actions 配置 SSH 私钥 secret。
 - 服务用户对 `/var/www/relationship-temperature` 有写权限。
+
+即使以后改成自动部署，生产密钥仍应继续放在 `/etc/relationship-temperature.env`，不要放进 GitHub。
 
 ## 12. 验收清单
 
@@ -775,6 +923,52 @@ curl -s http://VPS_IP/api/trend | head
 curl -I https://example.com
 curl -s https://example.com/api/trend | head
 ```
+
+### 12.3 反爬和扫描防护检查
+
+当前生产环境采用灰云 DNS-only，Cloudflare 只负责 DNS，不负责 HTTP WAF。因此基础防护主要在 VPS 上完成。
+
+Nginx 配置位置：
+
+```text
+/etc/nginx/conf.d/relationship-temperature-security.conf
+/etc/nginx/conf.d/relationship-temperature-rate-limit.conf
+/etc/nginx/sites-enabled/relationship-temperature
+```
+
+当前策略：
+
+- `/api/` 每 IP 基础限流，防止接口被高频刷。
+- `/` 和静态资源入口有更宽松的基础限流，避免普通页面加载被误伤。
+- 常见扫描路径直接丢弃，例如 `.env`、`.git`、`phpunit`、`wp-login.php`、`cgi-bin`、`geoserver`。
+- GPTBot、ClaudeBot、CCBot、Bytespider、PerplexityBot 等 AI/大模型爬虫通过 Nginx User-Agent 拦截。
+- `public/robots.txt` 对主流 AI/大模型爬虫声明 `Disallow: /`。
+- fail2ban 的 `nginx-relationship-scanner` jail 会监控 Nginx access log，重复扫描漏洞路径的 IP 会被 UFW 临时封禁。
+
+检查命令：
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+sudo fail2ban-client status nginx-relationship-scanner
+sudo fail2ban-client status sshd
+```
+
+验证示例：
+
+```bash
+curl -I https://www.geoprizm.com/
+curl -A 'GPTBot' -I https://www.geoprizm.com/
+curl -A 'GPTBot' https://www.geoprizm.com/robots.txt
+curl -k -s -o /dev/null -w '%{http_code}\n' https://www.geoprizm.com/.git/config
+```
+
+预期：
+
+- 正常首页返回 `200`。
+- AI Bot 访问首页返回 `403`。
+- AI Bot 可读取 `robots.txt`。
+- 常见扫描路径被 Nginx 直接断开，curl 通常显示 `000`。
 
 ### 12.3 用户体验检查
 
