@@ -11,6 +11,7 @@ import type { AiExplanationResponse, AiStatus, TurningPoint } from "@/lib/types"
 export const runtime = "nodejs";
 
 const execFileAsync = promisify(execFile);
+const enrichmentTimeoutMs = 120_000;
 
 interface AiExplanationRequestBody {
   pairId?: unknown;
@@ -46,47 +47,105 @@ export async function POST(request: NextRequest): Promise<NextResponse<AiExplana
     );
   }
 
+  let enrichmentResult: PythonEnrichmentResult = {};
   try {
-    await runPythonEnrichment(resolution.pairId, turningPointDate);
+    enrichmentResult = await runPythonEnrichment(resolution.pairId, turningPointDate);
   } catch (caught) {
     return NextResponse.json({
       status: "error",
-      message: caught instanceof Error ? caught.message : "AI generation failed.",
-      turningPoint: currentTurningPoint
+      message: aiRuntimeErrorMessage(caught),
+      turningPoint: withAiStatus(currentTurningPoint, "error")
     });
   }
 
   const cacheAfter = await readRelationshipCache(resolution.pairId).catch(() => ({ payload: null }));
   const updatedTurningPoint = findTurningPoint(cacheAfter.payload?.turning_points ?? [], turningPointDate);
-  const status = (updatedTurningPoint?.ai_status ?? "error") as AiStatus | "error";
+  const status = resolveAiStatus(updatedTurningPoint, enrichmentResult);
   const message = status === "ready" ? null : aiStatusMessage(status);
-  return NextResponse.json({ status, message, turningPoint: updatedTurningPoint ?? currentTurningPoint });
+  return NextResponse.json({
+    status,
+    message,
+    turningPoint: updatedTurningPoint ?? withAiStatus(currentTurningPoint, status)
+  });
 }
 
 function findTurningPoint(points: TurningPoint[], turningPointDate: string): TurningPoint | null {
   return points.find((point) => point.date === turningPointDate) ?? null;
 }
 
-async function runPythonEnrichment(pairId: string, turningPointDate: string): Promise<void> {
+interface PythonEnrichmentResult {
+  ai_status?: AiStatus | "error";
+  message?: string | null;
+}
+
+async function runPythonEnrichment(pairId: string, turningPointDate: string): Promise<PythonEnrichmentResult> {
   const pythonBin = process.env.PYTHON_BIN || path.join(process.cwd(), ".venv", "bin", "python");
-  await execFileAsync(
+  const { stdout } = await execFileAsync(
     pythonBin,
     ["-m", "relationship_temperature.enrichment", "--pair", pairId, "--turning-point-date", turningPointDate],
     {
       cwd: process.cwd(),
       env: process.env,
-      timeout: 60_000,
+      timeout: enrichmentTimeoutMs,
       maxBuffer: 1024 * 1024
     }
   );
+  return parsePythonEnrichmentResult(stdout);
+}
+
+function parsePythonEnrichmentResult(stdout: string): PythonEnrichmentResult {
+  const line = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
+  if (!line) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(line) as { ai_status?: unknown; message?: unknown };
+    return {
+      ai_status: isAiStatus(parsed.ai_status) ? parsed.ai_status : undefined,
+      message: typeof parsed.message === "string" ? parsed.message : null
+    };
+  } catch {
+    return {};
+  }
+}
+
+function resolveAiStatus(
+  turningPoint: TurningPoint | null,
+  enrichmentResult: PythonEnrichmentResult
+): AiStatus | "error" {
+  if (turningPoint?.ai_status) {
+    return turningPoint.ai_status;
+  }
+  if (enrichmentResult.ai_status) {
+    return enrichmentResult.ai_status;
+  }
+  return "error";
+}
+
+function withAiStatus(turningPoint: TurningPoint, status: AiStatus | "error"): TurningPoint {
+  return { ...turningPoint, ai_status: status };
+}
+
+function isAiStatus(status: unknown): status is AiStatus | "error" {
+  return ["not_requested", "pending", "ready", "error", "missing_key"].includes(String(status));
+}
+
+function aiRuntimeErrorMessage(caught: unknown): string {
+  if (caught instanceof Error && /timeout|timed out/i.test(caught.message)) {
+    return "AI 解读生成超时，当前先显示规则版解释。";
+  }
+  return "AI 解读生成失败，当前先显示规则版解释。";
 }
 
 function aiStatusMessage(status: AiStatus | "error"): string | null {
   if (status === "missing_key") {
-    return "DeepSeek API key is not configured.";
+    return "AI 服务暂未配置，当前先显示规则版解释。";
   }
   if (status === "error") {
-    return "AI explanation generation failed.";
+    return "AI 解读生成失败，当前先显示规则版解释。";
+  }
+  if (status === "not_requested" || status === "pending") {
+    return "AI 解读尚未生成，当前先显示规则版解释。";
   }
   return null;
 }

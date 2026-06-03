@@ -29,7 +29,6 @@ const indexRed = "#C4563B";
 type ChartRangeDays = 90 | 30 | 15;
 const chartRanges: ChartRangeDays[] = [90, 30, 15];
 const currentAiPromptVersion = "report-cn-v4";
-const aiWarmupConcurrency = 2;
 const objectFlags: Record<string, string> = {
   chn: "🇨🇳",
   usa: "🇺🇸",
@@ -128,14 +127,17 @@ function TrendApp() {
   const requestAiForTurningPoint = useCallback(async (
     pairId: string,
     turningPointDate: string,
-    options: { showMessage?: boolean } = {}
+    options: { showMessage?: boolean; force?: boolean } = {}
   ) => {
     const requestKey = aiRequestKey(pairId, turningPointDate);
-    if (requestedAiKeys.current.has(requestKey)) {
+    if (!options.force && requestedAiKeys.current.has(requestKey)) {
       return;
     }
     requestedAiKeys.current.add(requestKey);
     markAiPending(requestKey, true);
+    if (options.showMessage ?? true) {
+      setAiMessage(null);
+    }
     try {
       const response = await requestAiExplanation(pairId, turningPointDate);
       const updatedTurningPoint = response.turningPoint;
@@ -146,6 +148,7 @@ function TrendApp() {
         setAiMessage(response.message);
       }
     } catch (caught: unknown) {
+      requestedAiKeys.current.delete(requestKey);
       if (options.showMessage ?? true) {
         setAiMessage(caught instanceof Error ? caught.message : "解读生成失败，已保留规则版解释。");
       }
@@ -158,13 +161,11 @@ function TrendApp() {
     if (nextRelationship === null) {
       return;
     }
-    const pendingPoints = nextRelationship.turning_points.filter(needsAiRefresh);
-    if (pendingPoints.length === 0) {
+    const latestPendingPoint = [...nextRelationship.turning_points].reverse().find(needsAiRefresh);
+    if (!latestPendingPoint) {
       return;
     }
-    void runWithConcurrency(pendingPoints, aiWarmupConcurrency, (point) =>
-      requestAiForTurningPoint(nextRelationship.pair_id, point.date, { showMessage: false })
-    );
+    void requestAiForTurningPoint(nextRelationship.pair_id, latestPendingPoint.date, { showMessage: false });
   }, [requestAiForTurningPoint]);
 
   const loadPair = useCallback(async (pair: string, options: { warmAi?: boolean } = {}) => {
@@ -279,6 +280,10 @@ function TrendApp() {
     setAiMessage(null);
     void requestAiForTurningPoint(relationship.pair_id, selectedTurning.date);
   }, [relationship, requestAiForTurningPoint, selectedTurning]);
+
+  useEffect(() => {
+    setAiMessage(null);
+  }, [relationship?.pair_id, selectedTurning?.date]);
 
   function queueDraftPairAnalysis(leftObject: string, rightObject: string) {
     if (!isLegalPair(leftObject, rightObject, legalPairIds)) {
@@ -401,6 +406,11 @@ function TrendApp() {
           hasSelectedTurning={selectedTurningDate !== null}
           aiPending={selectedTurning ? aiPendingKeys.has(aiRequestKey(relationship?.pair_id ?? "", selectedTurning.date)) : false}
           aiMessage={aiMessage}
+          onRequestAi={
+            relationship && selectedTurning
+              ? () => void requestAiForTurningPoint(relationship.pair_id, selectedTurning.date, { force: true })
+              : null
+          }
           loading={panelLoading}
         />
       </section>
@@ -873,8 +883,9 @@ const ExplanationPanel = forwardRef<HTMLElement, {
   hasSelectedTurning: boolean;
   aiPending: boolean;
   aiMessage: string | null;
+  onRequestAi: (() => void) | null;
   loading: boolean;
-}>(function ExplanationPanel({ relationship, turningPoint, hasSelectedTurning, aiPending, aiMessage, loading }, ref) {
+}>(function ExplanationPanel({ relationship, turningPoint, hasSelectedTurning, aiPending, aiMessage, onRequestAi, loading }, ref) {
   const [activeTab, setActiveTab] = useState<"analysis" | "reports">("analysis");
 
   useEffect(() => {
@@ -907,6 +918,8 @@ const ExplanationPanel = forwardRef<HTMLElement, {
   const summary = relationshipIndexCopy(cleanRelativeTimePrefix(hasAiSummary ? turningPoint.ai_summary : turningPoint.summary));
   const visibleEvidence = (turningPoint.ai_evidence ?? []).map(relationshipIndexCopy);
   const mainEvent = relationshipIndexCopy(turningPoint.ai_main_event);
+  const aiNotice = aiStatusNotice(turningPoint, { hasAiSummary, aiPending, aiMessage });
+  const canRequestAi = !hasAiSummary && !aiPending && turningPoint.ai_status !== "missing_key" && onRequestAi !== null;
   const directionClass = turningPoint.direction === "改善" ? "improve" : "worsen";
   const directionTitle = turningPoint.direction === "改善" ? "关系改善" : "关系恶化";
   return (
@@ -954,7 +967,16 @@ const ExplanationPanel = forwardRef<HTMLElement, {
         <div className="explain-tab-panel analysis-tab" role="tabpanel">
           <p className="explain-summary">{summary}</p>
           {aiPending ? <p className="ai-status">解读生成中，当前先显示规则版解释。</p> : null}
-          {aiMessage ? <p className="ai-status warn">{aiMessage}</p> : null}
+          {aiNotice ? (
+            <div className={`ai-status-row ${aiNotice.tone}`}>
+              <p className="ai-status">{aiNotice.text}</p>
+              {canRequestAi ? (
+                <button type="button" className="ai-status-action" onClick={() => onRequestAi?.()}>
+                  {turningPoint.ai_status === "error" ? "重试" : "生成"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {hasAiSummary && visibleEvidence.length ? (
             <div className="evidence-block">
               <h3>证据线索</h3>
@@ -1231,6 +1253,29 @@ function needsAiRefresh(turningPoint: TurningPoint): boolean {
   return aiStatus !== "ready" || turningPoint.ai_prompt_version !== currentAiPromptVersion;
 }
 
+function aiStatusNotice(
+  turningPoint: TurningPoint,
+  state: { hasAiSummary: boolean; aiPending: boolean; aiMessage: string | null }
+): { text: string; tone: "muted" | "warn" } | null {
+  if (state.hasAiSummary || state.aiPending) {
+    return null;
+  }
+  if (state.aiMessage) {
+    return { text: state.aiMessage, tone: "warn" };
+  }
+  const aiStatus = turningPoint.ai_status ?? "not_requested";
+  if (aiStatus === "missing_key") {
+    return { text: "AI 服务暂未配置，当前先显示规则版解释。", tone: "warn" };
+  }
+  if (aiStatus === "error") {
+    return { text: "AI 解读生成失败，当前先显示规则版解释。", tone: "warn" };
+  }
+  if (aiStatus === "not_requested" || aiStatus === "pending") {
+    return { text: "AI 解读尚未生成，当前先显示规则版解释。", tone: "muted" };
+  }
+  return null;
+}
+
 function cleanReportText(value: string | null | undefined): string | null {
   if (!value) {
     return null;
@@ -1281,26 +1326,6 @@ function isReadableReportSummary(summary: string): boolean {
 
 function cleanDomain(sourceDomain: string): string {
   return sourceDomain.replace(/^www\./, "").replace(/:443$/, "") || "来源网站";
-}
-
-async function runWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<void>
-): Promise<void> {
-  let cursor = 0;
-  const workerCount = Math.min(concurrency, items.length);
-  await Promise.all(
-    Array.from({ length: workerCount }, async () => {
-      while (cursor < items.length) {
-        const item = items[cursor];
-        cursor += 1;
-        if (item !== undefined) {
-          await worker(item);
-        }
-      }
-    })
-  );
 }
 
 function cleanRelativeTimePrefix(value: string | null | undefined): string {

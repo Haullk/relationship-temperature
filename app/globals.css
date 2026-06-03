@@ -1227,6 +1227,40 @@ h2 {
   color: var(--red);
 }
 
+.ai-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ai-status-row .ai-status {
+  margin: 0;
+}
+
+.ai-status-row.warn .ai-status {
+  color: var(--red);
+}
+
+.ai-status-action {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: var(--fs-caption);
+  font-weight: 800;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
+.ai-status-action:hover {
+  border-color: color-mix(in srgb, var(--blue) 42%, var(--line));
+  background: color-mix(in srgb, var(--blue) 7%, #ffffff);
+}
+
 .evidence-block {
   padding-top: 10px;
   border-top: 1px solid var(--line);
