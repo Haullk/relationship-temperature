@@ -943,14 +943,14 @@ Nginx 配置位置：
 - 常见扫描路径直接丢弃，例如 `.env`、`.git`、`phpunit`、`wp-login.php`、`cgi-bin`、`geoserver`。
 - GPTBot、ClaudeBot、CCBot、Bytespider、PerplexityBot 等 AI/大模型爬虫通过 Nginx User-Agent 拦截。
 - `public/robots.txt` 对主流 AI/大模型爬虫声明 `Disallow: /`。
-- fail2ban 的 `nginx-relationship-scanner` jail 会监控 Nginx access log，重复扫描漏洞路径的 IP 会被 UFW 临时封禁。
+- fail2ban 的 `nginx-rt-scan` jail 会监控 Nginx access log，重复扫描漏洞路径的 IP 会被 UFW 临时封禁。
 
 检查命令：
 
 ```bash
 sudo nginx -t
 sudo systemctl reload nginx
-sudo fail2ban-client status nginx-relationship-scanner
+sudo fail2ban-client status nginx-rt-scan
 sudo fail2ban-client status sshd
 ```
 
