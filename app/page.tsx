@@ -14,6 +14,8 @@ import {
 import { chartPath, chartPoints, type ChartPoint } from "@/lib/chart";
 import type {
   AiExplanationResponse,
+  FeaturedCardPayload,
+  FeaturedTrendPoint,
   FeaturedPair,
   RelationshipPayload,
   TrendApiResponse,
@@ -331,9 +333,9 @@ function TrendApp() {
       <header className="topbar">
         <div className="brand-block">
           <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" focusable="false">
-              <circle className="brand-circle warm" cx="13" cy="20" r="11" />
-              <circle className="brand-circle cool" cx="27" cy="20" r="11" />
+            <svg viewBox="0 0 64 64" focusable="false">
+              <circle className="brand-circle warm" cx="25" cy="32" r="17" />
+              <circle className="brand-circle cool" cx="39" cy="32" r="17" />
             </svg>
           </span>
           <div>
@@ -454,7 +456,7 @@ function RelationshipCard({
   onClick
 }: {
   pair: FeaturedPair;
-  payload: RelationshipPayload | null;
+  payload: FeaturedCardPayload | null;
   active: boolean;
   candidateLabels: Map<string, string>;
   onClick: () => void;
@@ -501,7 +503,7 @@ function RelationshipCard({
   );
 }
 
-function MiniSparkline({ trend }: { trend: RelationshipPayload["trend"] }) {
+function MiniSparkline({ trend }: { trend: readonly FeaturedTrendPoint[] }) {
   const points = sparklinePoints(trend, 150, 44, 3);
   const latestPoint = points[points.length - 1];
   return (
@@ -979,12 +981,12 @@ const ExplanationPanel = forwardRef<HTMLElement, {
       ) : (
         <div className="explain-tab-panel reports-tab" role="tabpanel">
           <div className="reports">
-            {turningPoint.reports.map((report) => (
+            {uniqueReports(turningPoint.reports).map((report) => (
               <a key={report.source_url} href={report.source_url} target="_blank" rel="noreferrer">
                 <strong>{reportTitle(report)}</strong>
                 {reportSummary(report) ? <span className="report-summary">{reportSummary(report)}</span> : null}
                 <small className="report-meta">
-                  <span>{report.source_domain} · {report.event_type}</span>
+                  <span>{cleanDomain(report.source_domain)} · {report.event_type}</span>
                   <time dateTime={report.date}>{report.date}</time>
                 </small>
               </a>
@@ -1032,7 +1034,7 @@ function Skeleton() {
   );
 }
 
-function dailyDelta(payload: RelationshipPayload | null): { label: string; kind: "up" | "down" | "flat" } {
+function dailyDelta(payload: { trend: readonly FeaturedTrendPoint[] } | null): { label: string; kind: "up" | "down" | "flat" } {
   const trend = payload?.trend ?? [];
   if (trend.length < 2) {
     return { label: "较昨日 --", kind: "flat" };
@@ -1083,7 +1085,7 @@ function visibleTrendForRange(trend: RelationshipPayload["trend"], rangeDays: Ch
 }
 
 function sparklinePoints(
-  trend: RelationshipPayload["trend"],
+  trend: readonly FeaturedTrendPoint[],
   width: number,
   height: number,
   padding: number
@@ -1189,12 +1191,32 @@ function replaceTurningPoint(
 }
 
 function reportTitle(report: TurningPoint["reports"][number]): string {
-  return report.chinese_title || report.resolved_title || report.url_title;
+  const candidates = [report.chinese_title, report.resolved_title, report.url_title]
+    .map(cleanReportText)
+    .filter((title): title is string => title !== null && isReadableReportTitle(title, report.source_domain));
+  return candidates[0] ?? `${cleanDomain(report.source_domain)} 相关报道`;
 }
 
 function reportSummary(report: TurningPoint["reports"][number]): string | null {
-  const summary = report.chinese_summary || report.short_summary || null;
-  return summary ? relationshipIndexCopy(summary) : null;
+  const candidates = [report.chinese_summary, report.short_summary, report.meta_description]
+    .map(cleanReportText)
+    .filter((summary): summary is string => summary !== null && isReadableReportSummary(summary));
+  return candidates[0] ? relationshipIndexCopy(candidates[0]) : null;
+}
+
+function uniqueReports(reports: TurningPoint["reports"]): TurningPoint["reports"] {
+  const seen = new Set<string>();
+  const unique: TurningPoint["reports"] = [];
+  for (const report of reports) {
+    const title = reportTitle(report).replace(/（重复）$/, "").trim().toLowerCase();
+    const key = `${cleanDomain(report.source_domain).toLowerCase()}|${title}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    unique.push(report);
+  }
+  return unique;
 }
 
 function aiRequestKey(pairId: string, turningPointDate: string): string {
@@ -1207,6 +1229,58 @@ function needsAiRefresh(turningPoint: TurningPoint): boolean {
     return false;
   }
   return aiStatus !== "ready" || turningPoint.ai_prompt_version !== currentAiPromptVersion;
+}
+
+function cleanReportText(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  const cleaned = value
+    .replace(/\s+/g, " ")
+    .replace(/\s+[|｜-]\s+(The Express Tribune|NBC Chicago|Moneycontrol\\.com)$/i, "")
+    .trim();
+  return cleaned || null;
+}
+
+function isReadableReportTitle(title: string, sourceDomain: string): boolean {
+  const lowered = title.toLowerCase();
+  const domain = cleanDomain(sourceDomain).toLowerCase();
+  if (
+    lowered === "just a moment..." ||
+    lowered === "just a moment" ||
+    lowered === "403 forbidden" ||
+    lowered === "404 not found" ||
+    lowered === "file not found" ||
+    lowered.includes("请稍候") ||
+    lowered.includes("相关报道线索") ||
+    lowered.includes("报道标题缺失")
+  ) {
+    return false;
+  }
+  if (domain && (lowered === domain || lowered === `www.${domain}`)) {
+    return false;
+  }
+  if (/^article[\s_-]+[0-9a-f-]{12,}$/i.test(title)) {
+    return false;
+  }
+  if (/^[0-9a-f]{8}[- ][0-9a-f]{4}[- ][0-9a-f]{4}/i.test(title)) {
+    return false;
+  }
+  return title.length >= 4;
+}
+
+function isReadableReportSummary(summary: string): boolean {
+  const lowered = summary.toLowerCase();
+  return !(
+    lowered.includes("提供了一条") && lowered.includes("相关报道线索") ||
+    lowered.includes("点击可查看原始报道") ||
+    lowered.includes("报道标题缺失") ||
+    lowered.includes("具体内容无法获取")
+  );
+}
+
+function cleanDomain(sourceDomain: string): string {
+  return sourceDomain.replace(/^www\./, "").replace(/:443$/, "") || "来源网站";
 }
 
 async function runWithConcurrency<T>(

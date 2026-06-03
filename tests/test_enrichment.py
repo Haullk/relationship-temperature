@@ -8,6 +8,7 @@ from relationship_temperature.enrichment import (
     ai_input_hash,
     apply_ai_cache_to_turning_point,
     apply_ai_to_turning_point,
+    best_report_title,
     build_ai_input,
     is_retryable_database_error,
     merge_metadata_into_turning_point,
@@ -168,8 +169,19 @@ def test_apply_ai_payload_fills_missing_report_translation_with_chinese_fallback
     )
 
     report = point["reports"][0]  # type: ignore[index]
-    assert report["chinese_title"] == "战斗相关报道线索"
-    assert report["chinese_summary"] == "2026-04-03，example.com 提供了一条“战斗”相关线索；点击可查看原始报道。"
+    assert report["chinese_title"] == "来自 example.com 的相关报道"
+    assert report["chinese_summary"] == "2026-04-03，example.com 提供了一条相关报道线索；点击可查看原始报道。"
+
+
+def test_best_report_title_ignores_boilerplate_metadata() -> None:
+    report = {
+        "resolved_title": "Just a moment...",
+        "url_title": "us china trade journalist expulsions",
+    }
+
+    assert best_report_title(report, "https://example.com/us-china-trade-journalist-expulsions") == (
+        "us china trade journalist expulsions"
+    )
 
 
 def test_short_summary_truncates_long_descriptions() -> None:

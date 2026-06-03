@@ -442,6 +442,11 @@ def build_reports(
         key=lambda item: (item.total_score, item.best_score, item.report.num_mentions, item.report.num_articles),
         reverse=True,
     )
+    relevant_ranked = [
+        item for item in ranked if report_matches_pair_keywords(item.report, pool, pair_id)
+    ]
+    if relevant_ranked:
+        ranked = relevant_ranked
     selected: list[ReportAggregate] = []
     selected_urls: set[str] = set()
     domain_counts: dict[str, int] = defaultdict(int)
@@ -470,7 +475,9 @@ def build_reports(
 def normalized_source_domain(source_domain: str | None, source_url: str) -> str:
     domain = source_domain or urlparse(source_url).netloc or "source"
     domain = domain.lower().strip()
-    return domain[4:] if domain.startswith("www.") else domain
+    if domain.startswith("www."):
+        domain = domain[4:]
+    return domain.removesuffix(":443")
 
 
 def is_relevant(event: StandardizedEvent, pool: CandidatePool, pair_id: str, *, source_only: bool) -> bool:
@@ -487,7 +494,26 @@ def is_relevant(event: StandardizedEvent, pool: CandidatePool, pair_id: str, *, 
                 event.source_url,
             )
         ).lower()
-    return any(keyword in text for keyword in keywords_a) and any(keyword in text for keyword in keywords_b)
+    return any(keyword_matches(keyword, text) for keyword in keywords_a) and any(
+        keyword_matches(keyword, text) for keyword in keywords_b
+    )
+
+
+def report_matches_pair_keywords(report: KeyReport, pool: CandidatePool, pair_id: str) -> bool:
+    keywords_a, keywords_b = pool.keywords_for_pair(pair_id)
+    text = " ".join((report.source_domain, report.source_url, report.url_title)).lower()
+    return any(keyword_matches(keyword, text) for keyword in keywords_a) and any(
+        keyword_matches(keyword, text) for keyword in keywords_b
+    )
+
+
+def keyword_matches(keyword: str, text: str) -> bool:
+    normalized = keyword.strip().lower()
+    if not normalized:
+        return False
+    if re.fullmatch(r"[a-z0-9.]+", normalized):
+        return re.search(rf"(?<![a-z0-9]){re.escape(normalized)}(?![a-z0-9])", text) is not None
+    return normalized in text
 
 
 def url_title(url: str) -> str:

@@ -107,6 +107,28 @@ export interface RelationshipPayload {
   turning_points: TurningPoint[];
 }
 
+export interface FeaturedTrendPoint {
+  date: string;
+  relationship_temperature: number;
+}
+
+export interface FeaturedCardPayload {
+  pair_id: string;
+  display_name: string;
+  object_a: string;
+  object_b: string;
+  data_start: string | null;
+  data_end: string | null;
+  generated_at: string;
+  current_temperature: number | null;
+  current_band: TemperatureBand | null;
+  card_status: CardStatus | null;
+  change_7d?: ChangeStatus;
+  change_14d: ChangeStatus;
+  turning_point_status: TurningPointStatus;
+  trend: FeaturedTrendPoint[];
+}
+
 export interface TrendApiResponse {
   requestedPair: string | null;
   pairId: string;
@@ -114,7 +136,7 @@ export interface TrendApiResponse {
   message: string | null;
   cacheStatus: CacheStatus;
   candidatePool: CandidatePoolResponse;
-  featuredCards: RelationshipPayload[];
+  featuredCards: FeaturedCardPayload[];
   relationship: RelationshipPayload | null;
 }
 

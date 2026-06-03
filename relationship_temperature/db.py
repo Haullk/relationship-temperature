@@ -69,7 +69,8 @@ def connect() -> Any:
 
 
 def schema_sql() -> str:
-    return "\n\n".join(path.read_text(encoding="utf-8") for path in sorted(MIGRATIONS_DIR.glob("*.sql")))
+    migration_paths = sorted(path for path in MIGRATIONS_DIR.glob("*.sql") if not path.name.startswith("."))
+    return "\n\n".join(path.read_text(encoding="utf-8") for path in migration_paths)
 
 
 def ensure_cache_schema(conn: ConnectionLike) -> None:

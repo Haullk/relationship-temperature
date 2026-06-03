@@ -11,6 +11,7 @@ from relationship_temperature.processing import (
     card_status,
     change_status,
     event_weight,
+    keyword_matches,
     process_relationship,
     temperature_band,
 )
@@ -151,6 +152,46 @@ def test_reports_include_actor_matched_url_without_pair_keywords() -> None:
     reports = build_reports("chn_usa", events, pool, day, day, "恶化", frozenset({"18"}))
 
     assert [report.source_domain for report in reports] == ["bbc.com"]
+
+
+def test_reports_prioritize_pair_keyword_matches_over_noisy_high_score_urls() -> None:
+    pool = load_candidate_pool()
+    day = date(2026, 1, 20)
+    events = [
+        make_event(
+            day,
+            -10.0,
+            root="18",
+            url="https://localnews.com/canton-man-indicted-in-pub-shooting",
+            domain="localnews.com",
+            mentions=50,
+        ),
+        make_event(
+            day,
+            -3.0,
+            root="18",
+            url="https://example.com/us-china-trade-journalist-expulsions",
+            domain="example.com",
+            mentions=4,
+        ),
+        make_event(
+            day,
+            -2.5,
+            root="18",
+            url="https://source.com/chinese-firms-face-us-ai-chip-ban",
+            domain="source.com",
+            mentions=3,
+        ),
+    ]
+
+    reports = build_reports("chn_usa", events, pool, day, day, "恶化", frozenset({"18"}))
+
+    assert [report.source_domain for report in reports] == ["example.com", "source.com"]
+
+
+def test_short_keywords_require_word_boundaries() -> None:
+    assert keyword_matches("us", "us china trade talks")
+    assert not keyword_matches("us", "canton murder suspect charged")
 
 
 def test_reports_aggregate_same_url_and_keep_best_representative() -> None:

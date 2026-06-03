@@ -1,6 +1,6 @@
 # 双边关系看板
 
-基于本地 MapNews/GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。
+基于 GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。
 
 ## 产品定位
 
@@ -25,12 +25,12 @@
 
 - 前端与 API：Next.js / React / TypeScript
 - 数据处理：Python
-- 数据库：PostgreSQL，读取 MapNews 共用数据库
+- 数据库：PostgreSQL，可读取 MapNews 共用数据库，也可由本项目独立导入 GDELT 事件切片
 - AI 解读：DeepSeek `deepseek-v4-flash`
 
 ## 数据流程
 
-1. 从 `gdelt_events_clean` 读取候选国家对事件。
+1. 从 `gdelt_events_clean` 读取候选国家对事件。该表既可以来自 MapNews，也可以由本项目独立导入 GDELT 2.0 export 文件生成。
 2. 用 GDELT GoldsteinScale 合作/冲突信号计算每日关系指数。
 3. 用 14 日滚动平均生成趋势线。
 4. 检测趋势段，筛选相关报道线索。
@@ -50,6 +50,8 @@ cp .env.example .env.local
 
 ```bash
 GDELT_DATABASE_URL=postgresql://user:password@localhost:5432/mapnews
+GDELT_BASE_URL=http://data.gdeltproject.org/gdeltv2
+GDELT_RAW_DIR=data/gdelt/raw
 DEEPSEEK_API_KEY=
 DEEPSEEK_MODEL=deepseek-v4-flash
 DEEPSEEK_API_URL=https://api.deepseek.com/chat/completions
@@ -74,6 +76,23 @@ python -m venv .venv
 .venv/bin/python -m relationship_temperature.precompute
 ```
 
+如果不依赖 MapNews，可先由本项目独立导入 GDELT 2.0 Events export 文件，再预计算缓存：
+
+```bash
+.venv/bin/python -m relationship_temperature.gdelt_importer \
+  --date 2026-06-02 \
+  --wait-for-files \
+  --precompute \
+  --with-ai \
+  --prune-days 120
+```
+
+只测试少量文件时可加：
+
+```bash
+.venv/bin/python -m relationship_temperature.gdelt_importer --date 2026-06-02 --limit-files 2 --precompute
+```
+
 启动 Web：
 
 ```bash
@@ -88,7 +107,7 @@ http://localhost:3001
 
 ## 每日刷新
 
-项目提供每日刷新脚本与 launchd 安装脚本：
+如果继续复用 MapNews 导入流程，项目提供每日刷新脚本与 launchd 安装脚本：
 
 ```bash
 ./scripts/install_daily_refresh_launchd.sh
@@ -104,6 +123,19 @@ http://localhost:3001
 - `files_imported = files_attempted`
 
 若约 1 小时内条件仍不满足，任务会报错退出。
+
+如果生产环境由本项目独立导入 GDELT，推荐定时运行：
+
+```bash
+cd /path/to/relationship-temperature
+.venv/bin/python -m relationship_temperature.gdelt_importer \
+  --wait-for-files \
+  --precompute \
+  --with-ai \
+  --prune-days 120
+```
+
+该命令默认导入 UTC 昨日的 96 个 GDELT 2.0 Events export 文件，只保留候选国家代码之间的事件，并写入兼容的 `gdelt_events_clean` 表。
 
 ## 测试
 
@@ -128,10 +160,9 @@ Python：
 
 关系指数基于全球新闻报道计算，反映媒体对两国关系的信号，不代表官方外交立场。
 
-指数计算会从本地 MapNews 共享数据库中读取 GDELT 结构化事件，识别合作或冲突信号，并按报道热度加权后映射为 0-100。AI 只用于解释层：根据标题、摘要、趋势段、驱动事件和报道线索生成中文解读，不读取新闻全文，也不把模型输出当作确定因果。
+指数计算会从 `gdelt_events_clean` 中读取 GDELT 结构化事件，识别合作或冲突信号，并按报道热度加权后映射为 0-100。AI 只用于解释层：根据标题、摘要、趋势段、驱动事件和报道线索生成中文解读，不读取新闻全文，也不把模型输出当作确定因果。
 
 方法参考：
 
 - GDELT 2.0 Event Codebook
 - CAMEO 事件编码框架
-

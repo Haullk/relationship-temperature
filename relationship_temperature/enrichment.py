@@ -33,6 +33,13 @@ MAX_ERROR_MESSAGE_LENGTH = 200
 AI_PROMPT_VERSION = "report-cn-v4"
 METADATA_FETCH_WORKERS = 4
 MAX_ENRICHMENT_RETRIES = 3
+BAD_SOURCE_TITLES = {
+    "403 forbidden",
+    "404 not found",
+    "file not found",
+    "just a moment...",
+    "just a moment",
+}
 
 
 @dataclass(frozen=True)
@@ -236,11 +243,7 @@ def build_ai_input(relationship: dict[str, Any], turning_point: dict[str, Any]) 
                 source_domain=str(report.get("source_domain") or ""),
                 source_url=source_url,
                 event_type=str(report.get("event_type") or ""),
-                title=str(
-                    report.get("resolved_title")
-                    or report.get("url_title")
-                    or fallback_title_from_url(source_url)
-                ),
+                title=best_report_title(report, source_url),
                 description=cast(str | None, report.get("meta_description")),
             )
         )
@@ -327,16 +330,33 @@ def apply_report_summaries(
 
 
 def fallback_chinese_report_title(report: dict[str, Any]) -> str:
-    event_type = str(report.get("event_type") or "").strip() or "相关事件"
-    return f"{event_type}相关报道线索"
+    source_domain = str(report.get("source_domain") or "").strip() or "来源网站"
+    return f"来自 {source_domain} 的相关报道"
 
 
 def fallback_chinese_report_summary(report: dict[str, Any]) -> str:
     report_date = str(report.get("date") or "").strip()
     source_domain = str(report.get("source_domain") or "").strip() or "来源网站"
-    event_type = str(report.get("event_type") or "").strip() or "相关事件"
     date_prefix = f"{report_date}，" if report_date else ""
-    return f"{date_prefix}{source_domain} 提供了一条“{event_type}”相关线索；点击可查看原始报道。"
+    return f"{date_prefix}{source_domain} 提供了一条相关报道线索；点击可查看原始报道。"
+
+
+def best_report_title(report: dict[str, Any], source_url: str) -> str:
+    for value in (report.get("resolved_title"), report.get("url_title"), fallback_title_from_url(source_url)):
+        title = str(value or "").strip()
+        if is_readable_source_title(title):
+            return title
+    return fallback_title_from_url(source_url)
+
+
+def is_readable_source_title(title: str) -> bool:
+    cleaned = " ".join(title.split()).strip()
+    if not cleaned:
+        return False
+    lowered = cleaned.lower()
+    if lowered in BAD_SOURCE_TITLES:
+        return False
+    return not (lowered.startswith("article ") and len(lowered) > 20)
 
 
 def short_summary(description: str | None) -> str | None:

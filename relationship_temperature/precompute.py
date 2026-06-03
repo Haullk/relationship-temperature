@@ -26,13 +26,20 @@ def run_precompute(*, end_date: date | None = None, days: int = 90) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Precompute relationship temperature cache.")
     parser.add_argument(
+        "--end-date",
+        type=date.fromisoformat,
+        default=None,
+        help="End date for event loading, YYYY-MM-DD.",
+    )
+    parser.add_argument("--days", type=int, default=90, help="Number of days to include in the relationship window.")
+    parser.add_argument(
         "--with-ai",
         action="store_true",
         help="Also enrich featured pairs with metadata and AI summaries.",
     )
     args = parser.parse_args()
 
-    count = run_precompute()
+    count = run_precompute(end_date=args.end_date, days=args.days)
     print(f"precomputed {count} relationship pairs")
     if args.with_ai:
         results = enrich_featured_relationships()

@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 
-import type { CacheStatus, RelationshipPayload } from "./types";
+import type { CacheStatus, FeaturedCardPayload, RelationshipPayload } from "./types";
 
 let pool: Pool | null = null;
 
@@ -54,10 +54,31 @@ export async function readManyRelationshipCaches(pairIds: string[]): Promise<Map
   return rows;
 }
 
+export function toFeaturedCardPayload(payload: RelationshipPayload): FeaturedCardPayload {
+  return {
+    pair_id: payload.pair_id,
+    display_name: payload.display_name,
+    object_a: payload.object_a,
+    object_b: payload.object_b,
+    data_start: payload.data_start,
+    data_end: payload.data_end,
+    generated_at: payload.generated_at,
+    current_temperature: payload.current_temperature,
+    current_band: payload.current_band,
+    card_status: payload.card_status,
+    change_7d: payload.change_7d,
+    change_14d: payload.change_14d,
+    turning_point_status: payload.turning_point_status,
+    trend: payload.trend.map((point) => ({
+      date: point.date,
+      relationship_temperature: point.relationship_temperature
+    }))
+  };
+}
+
 function getPool(databaseUrl: string): Pool {
   if (pool === null) {
     pool = new Pool({ connectionString: databaseUrl });
   }
   return pool;
 }
-

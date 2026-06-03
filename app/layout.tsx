@@ -5,8 +5,9 @@ export const metadata: Metadata = {
   title: "关系指数",
   description: "查看候选国家与地区关系指数趋势，并解释关键趋势段。",
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg"
+    icon: [{ url: "/icon.svg?v=2", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg?v=2", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg?v=2", type: "image/svg+xml" }]
   }
 };
 

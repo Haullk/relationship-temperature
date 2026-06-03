@@ -107,13 +107,13 @@ summary:focus-visible,
 }
 
 .brand-mark svg {
-  width: 41px;
-  height: 41px;
+  width: 42px;
+  height: 42px;
 }
 
 .brand-circle {
   fill: none;
-  stroke-width: 2.2;
+  stroke-width: 5;
 }
 
 .brand-circle.warm {

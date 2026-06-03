@@ -14,3 +14,4 @@ tsconfig.tsbuildinfo
 *.pyc
 .env
 .env.local
+.impeccable/critique/*.md

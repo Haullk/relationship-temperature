@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { loadCandidatePool, resolvePair, toCandidatePoolResponse } from "@/lib/candidatePool";
-import { readManyRelationshipCaches, readRelationshipCache } from "@/lib/cache";
-import type { PairStatus, RelationshipPayload, TrendApiResponse } from "@/lib/types";
+import { readManyRelationshipCaches, readRelationshipCache, toFeaturedCardPayload } from "@/lib/cache";
+import type { FeaturedCardPayload, PairStatus, RelationshipPayload, TrendApiResponse } from "@/lib/types";
 
 export async function GET(request: NextRequest): Promise<NextResponse<TrendApiResponse>> {
   const pool = loadCandidatePool();
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendApiRe
   const featuredCards = featuredIds
     .map((pairId) => featuredCache.get(pairId))
     .filter((payload): payload is RelationshipPayload => payload !== undefined);
+  const featuredCardSummaries: FeaturedCardPayload[] = featuredCards.map(toFeaturedCardPayload);
 
   const pairStatus: PairStatus = resolution.isValid
     ? requestedPair === null || requestedPair.trim() === ""
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<TrendApiRe
     message: resolution.message,
     cacheStatus: readResult.status,
     candidatePool: toCandidatePoolResponse(pool),
-    featuredCards,
+    featuredCards: featuredCardSummaries,
     relationship: readResult.payload
   });
 }
