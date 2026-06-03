@@ -187,7 +187,8 @@ function TrendApp() {
       const [nextObjectA = "chn", nextObjectB = "usa"] = payload.pairId.split("_");
       setDraftObjectA(nextObjectA);
       setDraftObjectB(nextObjectB);
-      setSelectedTurningDate(payload.relationship?.turning_points[0]?.date ?? null);
+      const nextTurningPoints = payload.relationship?.turning_points ?? [];
+      setSelectedTurningDate(nextTurningPoints[nextTurningPoints.length - 1]?.date ?? null);
       const url = new URL(window.location.href);
       url.searchParams.set("pair", payload.pairId);
       window.history.replaceState({}, "", url);
@@ -262,7 +263,7 @@ function TrendApp() {
       if (visibleSegments.some((point) => point.date === previousDate)) {
         return previousDate;
       }
-      return visibleSegments[0]?.date ?? null;
+      return visibleSegments[visibleSegments.length - 1]?.date ?? null;
     });
   }, [relationship, chartRangeDays]);
 
@@ -313,10 +314,15 @@ function TrendApp() {
     shareResetTimer.current = window.setTimeout(() => setShareStatus("idle"), 1600);
   }
 
+  function scrollToExplanation() {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    explanationRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+
   function selectTurningPoint(date: string) {
     setSelectedTurningDate(date);
     if (window.matchMedia("(max-width: 820px)").matches) {
-      window.setTimeout(() => explanationRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+      window.setTimeout(scrollToExplanation, 0);
     }
   }
 
@@ -325,7 +331,10 @@ function TrendApp() {
       <header className="topbar">
         <div className="brand-block">
           <span className="brand-mark" aria-hidden="true">
-            <span />
+            <svg viewBox="0 0 40 40" focusable="false">
+              <circle className="brand-circle warm" cx="13" cy="20" r="11" />
+              <circle className="brand-circle cool" cx="27" cy="20" r="11" />
+            </svg>
           </span>
           <div>
             <h1>双边关系看板</h1>
@@ -380,6 +389,7 @@ function TrendApp() {
           onDraftObjectBChange={updateDraftObjectB}
           shareStatus={shareStatus}
           onShare={() => void shareCurrentUrl()}
+          onShowExplanation={scrollToExplanation}
           loading={panelLoading}
         />
         <ExplanationPanel
@@ -516,6 +526,7 @@ function RelationshipChart({
   onDraftObjectBChange,
   shareStatus,
   onShare,
+  onShowExplanation,
   loading
 }: {
   relationship: RelationshipPayload | null;
@@ -531,6 +542,7 @@ function RelationshipChart({
   onDraftObjectBChange: (objectId: string) => void;
   shareStatus: "idle" | "copied" | "failed";
   onShare: () => void;
+  onShowExplanation: () => void;
   loading: boolean;
 }) {
   const width = 880;
@@ -567,6 +579,10 @@ function RelationshipChart({
     { tick: 50, label: "中性" },
     { tick: 0, label: "对立" }
   ];
+  const showAllSegmentLabels = turningPoints.length <= 3;
+  const selectedTurningPoint = selectedTurningDate
+    ? turningPoints.find((point) => point.date === selectedTurningDate) ?? null
+    : null;
 
   useEffect(() => {
     setRangeFading(true);
@@ -699,6 +715,14 @@ function RelationshipChart({
             {label.label}
           </text>
         ))}
+        <g className="chart-svg-legend" role="img" aria-label="图表颜色说明" transform={`translate(${width / 2 - 238}, 20)`}>
+          <line x1="0" x2="16" y1="0" y2="0" className="chart-svg-legend-line improve" />
+          <text x="24" y="4">红色：改善或偏友好</text>
+          <line x1="190" x2="206" y1="0" y2="0" className="chart-svg-legend-line neutral" />
+          <text x="214" y="4">50：中性线</text>
+          <line x1="318" x2="334" y1="0" y2="0" className="chart-svg-legend-line worsen" />
+          <text x="342" y="4">蓝色：恶化或偏紧张</text>
+        </g>
         {areaPath ? <path d={areaPath} className="trend-area" /> : null}
         <path d={path} className="trend-line history" />
         <path d={path} className="trend-line current" />
@@ -711,6 +735,7 @@ function RelationshipChart({
           }
           const selected = selectedTurningDate === point.date;
           const directionClass = point.direction === "改善" ? "improve" : "worsen";
+          const showSegmentLabel = selected || showAllSegmentLabels;
           const labelAnchor = segment[Math.floor(segment.length / 2)] ?? endPoint;
           const labelY = Math.max(padding + 16, labelAnchor.y - 28);
           return (
@@ -719,9 +744,12 @@ function RelationshipChart({
               role="button"
               tabIndex={0}
               className={`trend-segment-group ${selected ? "selected" : ""}`}
+              aria-label={`${point.previous_date} 至 ${point.date}，${point.direction} ${formatDelta(point.delta)}`}
+              aria-pressed={selected}
               onClick={() => onSelectTurning(point.date)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
                   onSelectTurning(point.date);
                 }
               }}
@@ -737,21 +765,25 @@ function RelationshipChart({
                 r={selected ? 9 : 7}
                 className={`segment-end ${directionClass}`}
               />
-              <line
-                x1={labelAnchor.x}
-                x2={labelAnchor.x}
-                y1={labelAnchor.y - 4}
-                y2={labelY + 8}
-                className={`segment-value-line ${directionClass}`}
-              />
-              <text
-                x={labelAnchor.x}
-                y={labelY}
-                className={`segment-label ${directionClass}`}
-                textAnchor="middle"
-              >
-                {formatDelta(point.delta)}
-              </text>
+              {showSegmentLabel ? (
+                <line
+                  x1={labelAnchor.x}
+                  x2={labelAnchor.x}
+                  y1={labelAnchor.y - 4}
+                  y2={labelY + 8}
+                  className={`segment-value-line ${directionClass}`}
+                />
+              ) : null}
+              {showSegmentLabel ? (
+                <text
+                  x={labelAnchor.x}
+                  y={labelY}
+                  className={`segment-label ${directionClass} ${selected ? "selected" : ""}`}
+                  textAnchor="middle"
+                >
+                  {formatDelta(point.delta)}
+                </text>
+              ) : null}
             </g>
           );
         })}
@@ -770,10 +802,28 @@ function RelationshipChart({
         {hoveredPoint ? <HoverGuide point={hoveredPoint} width={width} height={height} padding={padding} /> : null}
       </svg>
       <div className="chart-footer">
+        <div className="chart-guide">
+          <p className="chart-reading-note">点高亮段查看解释，指数反映媒体报道信号。</p>
+        </div>
         <button type="button" className="share-button" onClick={onShare}>
           {shareStatus === "copied" ? "已复制" : shareStatus === "failed" ? "复制失败" : "分享"}
         </button>
       </div>
+      {selectedTurningPoint ? (
+        <button
+          type="button"
+          className="mobile-explanation-cta"
+          onClick={onShowExplanation}
+          aria-controls="explanation-panel"
+        >
+          <span className="mobile-explanation-meta">
+            <span>当前趋势段</span>
+            <strong>{`${selectedTurningPoint.direction} ${formatDelta(selectedTurningPoint.delta)}`}</strong>
+            <span>{compactDateRange(selectedTurningPoint.previous_date, selectedTurningPoint.date)}</span>
+          </span>
+          <span className="mobile-explanation-action">查看解释</span>
+        </button>
+      ) : null}
       {loading ? <PanelLoading /> : null}
     </section>
   );
@@ -831,7 +881,7 @@ const ExplanationPanel = forwardRef<HTMLElement, {
 
   if (relationship === null || relationship.turning_point_status === "no_data") {
     return (
-      <section ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
+      <section id="explanation-panel" ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
         <h2>趋势段解释</h2>
         <p className="muted">当前组合暂无足够事件数据。</p>
         {loading ? <PanelLoading /> : null}
@@ -840,7 +890,7 @@ const ExplanationPanel = forwardRef<HTMLElement, {
   }
   if (turningPoint === null) {
     return (
-      <section ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
+      <section id="explanation-panel" ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
         <h2>趋势段解释</h2>
         <p className="muted">
           {relationship.turning_points.length > 0 && !hasSelectedTurning
@@ -858,14 +908,23 @@ const ExplanationPanel = forwardRef<HTMLElement, {
   const directionClass = turningPoint.direction === "改善" ? "improve" : "worsen";
   const directionTitle = turningPoint.direction === "改善" ? "关系改善" : "关系恶化";
   return (
-    <section ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
+    <section id="explanation-panel" ref={ref} className={`explain-panel ${loading ? "panel-busy" : ""}`}>
       <div className="explain-heading">
-        <div className="explain-heading-row">
-          <h2>{directionTitle}</h2>
-          <p className="eyebrow">{compactDateRange(turningPoint.previous_date, turningPoint.date)}</p>
+        <div className="explain-heading-main">
+          <div className="explain-heading-copy">
+            <h2>{directionTitle}</h2>
+            <p className="eyebrow">{compactDateRange(turningPoint.previous_date, turningPoint.date)}</p>
+          </div>
+          <strong className={`explain-delta ${directionClass}`}>{formatDelta(turningPoint.delta)}</strong>
         </div>
-        <strong className={`explain-delta ${directionClass}`}>{formatDelta(turningPoint.delta)}</strong>
       </div>
+
+      {hasAiSummary && mainEvent ? (
+        <div className="ai-main-event">
+          <span className="ai-main-event-label">主线</span>
+          <strong>{mainEvent}</strong>
+        </div>
+      ) : null}
 
       <div className="explain-tabs" role="tablist" aria-label="解释器内容">
         <button
@@ -884,18 +943,13 @@ const ExplanationPanel = forwardRef<HTMLElement, {
           className={activeTab === "reports" ? "active" : ""}
           onClick={() => setActiveTab("reports")}
         >
-          相关报道
+          <span>相关报道</span>
+          <span className="tab-count">{turningPoint.reports.length}</span>
         </button>
       </div>
 
       {activeTab === "analysis" ? (
         <div className="explain-tab-panel analysis-tab" role="tabpanel">
-          {hasAiSummary && mainEvent ? (
-            <div className="ai-main-event">
-              <span className="ai-main-event-label">主线</span>
-              <strong>{mainEvent}</strong>
-            </div>
-          ) : null}
           <p className="explain-summary">{summary}</p>
           {aiPending ? <p className="ai-status">解读生成中，当前先显示规则版解释。</p> : null}
           {aiMessage ? <p className="ai-status warn">{aiMessage}</p> : null}

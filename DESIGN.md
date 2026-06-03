@@ -13,43 +13,45 @@ colors:
   blue: "#4a7fa5"
   red: "#c4403a"
   hot-red: "#c4563b"
-  gray: "#9ca3af"
+  gray: "#6b7280"
   trend-line: "#374151"
   grid-line: "#c9d2dc"
   success: "#16a34a"
+  header: "#253044"
+  header-muted: "#d4deea"
 typography:
   headline:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "28px"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "0"
   title:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "20px"
     fontWeight: 700
     lineHeight: 1.25
     letterSpacing: "0"
   body:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.65
     letterSpacing: "0"
   emphasis:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "16px"
     fontWeight: 700
     lineHeight: 1.35
     letterSpacing: "0"
   caption:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "12px"
     fontWeight: 700
     lineHeight: 1.4
     letterSpacing: "0"
   data:
-    fontFamily: "Arial, PingFang SC, Microsoft YaHei, sans-serif"
+    fontFamily: "Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif"
     fontSize: "32px"
     fontWeight: 800
     lineHeight: 1
@@ -133,7 +135,9 @@ components:
 - **Ink** (#1f2b33): 主文字和选中控件背景。
 - **Muted Steel** (#667085): 次级说明文字，必须保持足够对比度。
 - **Divider Mist** (#e8edf2): 分隔线和面板内结构线。
-- **Data Gray** (#9ca3af): 中性数据、未强调数字和标签。
+- **Data Gray** (#6b7280): 中性数据、未强调数字和标签。用于白底时必须保持 AA 可读性。
+- **Deep Header** (#253044): 页头封面渐层的深色起点，只用于建立产品入口的明暗切割。
+- **Header Muted** (#d4deea): 深色页头上的副标题和次级时间文本。
 
 ### Named Rules
 
@@ -143,8 +147,8 @@ components:
 
 ## 3. Typography
 
-**Display Font:** Arial, PingFang SC, Microsoft YaHei, sans-serif  
-**Body Font:** Arial, PingFang SC, Microsoft YaHei, sans-serif  
+**Display Font:** Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif  
+**Body Font:** Avenir Next, Helvetica Neue, PingFang SC, Microsoft YaHei, sans-serif  
 **Label/Mono Font:** 同一字体栈，通过字重和 `font-variant-numeric: tabular-nums` 区分数据。
 
 **Character:** 单一系统 sans 字体适合产品型看板。它应保持熟悉、稳定、低干扰，让数据和解释成为主角。
@@ -208,12 +212,20 @@ components:
 
 ### Navigation
 
-- **Style:** 当前没有传统导航。顶部是品牌块和实时状态，保持轻量。
+- **Style:** 当前没有传统导航。顶部是柔和深蓝灰品牌页头，承载品牌块和实时状态，与下方白色内容区形成清楚入口。
 - **Mobile:** 顶部信息可换行，实时更新时间不应压缩标题或造成横向溢出。
+
+### Brand Mark
+
+页头 logo 使用相交双圆：左侧暖红圆代表一方关系主体，右侧冷蓝圆代表另一方关系主体，交叉区域暗示双边关系的交汇点。深色页头上使用较亮的 `#d97058` 与 `#6298bb` 描边，保持清楚但不做警报式高饱和。
 
 ### Relationship Trend Chart
 
-关系图是签名组件。趋势线、转折段、当前点、坐标标签和解释面板必须保持同一语义体系。图表需要优先服务读者判断：当前值、50 中性线、选中趋势段和日期范围必须一眼可见。
+关系图是签名组件。趋势线、转折段、当前点、坐标标签和解释面板必须保持同一语义体系。图表需要优先服务读者判断：当前值、50 中性线、选中趋势段和日期范围必须一眼可见。趋势段较多时，当前选中段优先显示数值标签，其他段保持可点击但降低视觉噪音。
+
+图表颜色必须在图表内部靠近 100 分线的位置解释：红色代表改善或偏友好，蓝色代表恶化或偏紧张，50 是中性线。颜色不能成为唯一线索，必须同时有文字标签或说明。移动端需要提供“当前趋势段 → 查看解释”的短路径，让用户看完趋势图后不用继续猜解释区在哪里。
+
+趋势图卡片内只使用四个字号角色：标题使用 Title，核心指数使用 Data，选择器/范围/分享等控件使用 Body，坐标轴、图例、趋势段数值、hover tooltip 和读图说明统一使用 Caption。不要在图表内部为单个标注新增临时字号。
 
 ## 6. Do's and Don'ts
 

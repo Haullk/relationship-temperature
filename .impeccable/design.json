@@ -47,6 +47,18 @@
         "displayName": "Hot Segment Red",
         "canonical": "#c4563b",
         "usage": "High relationship index, improving segments, and warm cards."
+      },
+      "header": {
+        "role": "neutral",
+        "displayName": "Deep Header",
+        "canonical": "#253044",
+        "usage": "Soft deep blue-gray product cover header start color, separating the entry area from the white dashboard panels without a harsh solid block."
+      },
+      "header-muted": {
+        "role": "neutral",
+        "displayName": "Header Muted",
+        "canonical": "#d4deea",
+        "usage": "Subtitle and secondary live-status text on the dark header."
       }
     },
     "typographyMeta": {
@@ -83,8 +95,10 @@
     },
     "componentNotes": {
       "relationshipCard": "Clickable repeated card with 8px radius, white surface, compact country pair, index value, delta, and sparkline.",
-      "trendChart": "Signature data component. Prioritize 50 neutral line, selected turning segment, current score, and date readability.",
-      "explanationPanel": "Reading panel for the selected trend segment. Needs strong hierarchy between direction, date range, main event, evidence, and reports.",
+      "brandMark": "Intersecting double-circle logo from the logo concepts file. Warm red circle represents one relationship actor, cool blue circle represents the other, and the overlap represents the bilateral relationship.",
+      "topbar": "Soft deep blue-gray product cover header using a restrained gradient, white title, #d4deea supporting text, double-circle brand mark, and a compact live-status badge.",
+      "trendChart": "Signature data component. Prioritize 50 neutral line, selected turning segment, current score, date readability, and frameless in-chart color semantics above the 100 line. Typography is limited to four roles: Title for the chart title, Data for the core score, Body for controls, and Caption for axes, legend, segment values, tooltips, and reading notes. Red means improving or friendlier, blue means worsening or tenser, and mobile needs a direct current-segment path to the explanation panel.",
+      "explanationPanel": "Reading panel for the selected trend segment. Keep the selected segment heading, main event, evidence, and reports in one coherent brief.",
       "methodBox": "Trust and limitation section. Keep available but secondary."
     },
     "dos": [
