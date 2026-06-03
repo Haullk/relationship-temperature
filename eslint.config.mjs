@@ -9,7 +9,19 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 
 const eslintConfig = [
   {
-    ignores: [".next/**", "node_modules/**", ".venv/**", "artifacts/**", "next-env.d.ts"]
+    ignores: [
+      ".agents/**",
+      ".claude/**",
+      ".cursor/**",
+      ".impeccable/**",
+      ".next/**",
+      ".playwright-cli/**",
+      ".venv/**",
+      "artifacts/**",
+      "next-env.d.ts",
+      "node_modules/**",
+      "output/**"
+    ]
   },
   js.configs.recommended,
   ...compat.extends("next/core-web-vitals"),

@@ -21,7 +21,7 @@ import type {
 } from "@/lib/types";
 
 const indexBlue = "#4A7FA5";
-const indexGray = "#9CA3AF";
+const indexGray = "#6B7280";
 const indexRed = "#C4563B";
 
 type ChartRangeDays = 90 | 30 | 15;
@@ -68,6 +68,25 @@ function indexVisualColor(value: number | null | undefined): string {
     return indexBlue;
   }
   return indexGray;
+}
+
+function relationshipStatusLabel(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "等待数据";
+  }
+  if (value >= 70) {
+    return "明显偏友好";
+  }
+  if (value >= 55) {
+    return "偏友好";
+  }
+  if (value > 45) {
+    return "接近中性";
+  }
+  if (value >= 35) {
+    return "偏紧张";
+  }
+  return "明显偏紧张";
 }
 
 function TrendApp() {
@@ -433,8 +452,18 @@ function RelationshipCard({
   const visualBand = indexVisualBand(payload?.current_temperature);
   const yesterdayDelta = dailyDelta(payload);
   const temperature = payload?.current_temperature?.toFixed(1) ?? "--";
+  const statusLabel = relationshipStatusLabel(payload?.current_temperature);
+  const pairName = pair.objects
+    .map((objectId) => candidateLabels.get(objectId) ?? objectId.toUpperCase())
+    .join(" / ");
   return (
-    <button type="button" className={`relation-card ${visualBand} ${active ? "active" : ""}`} onClick={onClick}>
+    <button
+      type="button"
+      className={`relation-card ${visualBand} ${active ? "active" : ""}`}
+      onClick={onClick}
+      aria-label={`${pairName}，指数 ${temperature}，${statusLabel}，${yesterdayDelta.label}，查看分析`}
+      aria-pressed={active}
+    >
       <span className="card-top-row">
         <span className="card-country-pair">
           {pair.objects.map((objectId, index) => (
@@ -454,7 +483,10 @@ function RelationshipCard({
       <span className="card-sparkline-wrap">
         <MiniSparkline trend={payload?.trend ?? []} />
       </span>
-      <span className="card-cta">点击分析→</span>
+      <span className="card-status-row">
+        <span>{statusLabel}</span>
+        <span className="card-action">查看</span>
+      </span>
     </button>
   );
 }
@@ -502,8 +534,8 @@ function RelationshipChart({
   loading: boolean;
 }) {
   const width = 880;
-  const height = 380;
-  const padding = 56;
+  const height = 400;
+  const padding = 64;
   const visibleTrend = visibleTrendForRange(relationship?.trend ?? [], rangeDays);
   const points = chartPoints(visibleTrend, width, height, padding);
   const path = chartPath(points);
@@ -516,12 +548,20 @@ function RelationshipChart({
   const xTicks = buildDateTicks(visibleTrend);
   const [hoveredPoint, setHoveredPoint] = useState<ChartPoint | null>(null);
   const [rangeFading, setRangeFading] = useState(false);
+  const chartCandidateLabels = useMemo(
+    () => new Map(candidates.map((candidate) => [candidate.id, candidate.label])),
+    [candidates]
+  );
   const relationshipObjects = relationship ? [relationship.object_a, relationship.object_b] : [];
+  const relationshipTitle = relationshipObjects.length > 0
+    ? relationshipObjects.map((objectId) => chartCandidateLabels.get(objectId) ?? objectId.toUpperCase()).join(" / ")
+    : "暂无数据";
   const chartAccent = indexVisualColor(relationship?.current_temperature);
   const chartStyle = { "--chart-accent": chartAccent } as CSSProperties;
   const currentDelta = dailyDelta(relationship);
   const scoreValue = relationship?.current_temperature?.toFixed(1) ?? "--";
   const scoreDateLabel = relationship?.data_end ? `${relationship.data_end}日指数` : "等待数据";
+  const statusLabel = relationshipStatusLabel(relationship?.current_temperature);
   const sideLabels = [
     { tick: 100, label: "友好" },
     { tick: 50, label: "中性" },
@@ -602,7 +642,12 @@ function RelationshipChart({
           </div>
         </div>
         <div className="chart-heading-row chart-heading-secondary">
-          <h2>{relationshipObjects.length > 0 ? "关系指数趋势" : "暂无数据"}</h2>
+          <div className="chart-title-block">
+            <h2>{relationshipTitle}</h2>
+            <p className="chart-context">
+              {relationshipObjects.length > 0 ? `${statusLabel} · 关系指数趋势` : "等待缓存数据"}
+            </p>
+          </div>
           <div className="score-inline" aria-label={scoreDateLabel}>
             <span className="score-date">{scoreDateLabel}</span>
             <strong>{scoreValue}</strong>
@@ -846,7 +891,10 @@ const ExplanationPanel = forwardRef<HTMLElement, {
       {activeTab === "analysis" ? (
         <div className="explain-tab-panel analysis-tab" role="tabpanel">
           {hasAiSummary && mainEvent ? (
-            <p className="ai-main-event">主线：{mainEvent}</p>
+            <div className="ai-main-event">
+              <span className="ai-main-event-label">主线</span>
+              <strong>{mainEvent}</strong>
+            </div>
           ) : null}
           <p className="explain-summary">{summary}</p>
           {aiPending ? <p className="ai-status">解读生成中，当前先显示规则版解释。</p> : null}

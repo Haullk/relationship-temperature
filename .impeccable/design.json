@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-03T01:25:51Z",
+  "title": "Design System: 双边关系看板",
+  "extensions": {
+    "northStar": "公共事务数据简报",
+    "register": "product",
+    "colorMeta": {
+      "bg": {
+        "role": "neutral",
+        "displayName": "Canvas Gray",
+        "canonical": "#f5f5f5",
+        "usage": "Page background behind all dashboard panels."
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel White",
+        "canonical": "#ffffff",
+        "usage": "Cards, chart panels, explanation panels, notices, and method sections."
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1f2b33",
+        "usage": "Primary text, selected segmented controls, and strong UI labels."
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Steel",
+        "canonical": "#667085",
+        "usage": "Secondary explanatory text and utility labels."
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Briefing Blue",
+        "canonical": "#4a7fa5",
+        "usage": "Relationship semantic color, links, chart emphasis, and cool state accents."
+      },
+      "red": {
+        "role": "primary",
+        "displayName": "Signal Red",
+        "canonical": "#c4403a",
+        "usage": "Warnings, errors, and warm relationship semantic emphasis."
+      },
+      "hot-red": {
+        "role": "secondary",
+        "displayName": "Hot Segment Red",
+        "canonical": "#c4563b",
+        "usage": "High relationship index, improving segments, and warm cards."
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page Headline",
+        "purpose": "Page title only. Keep fixed at product scale."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Panel and section titles."
+      },
+      "body": {
+        "displayName": "Readable Body",
+        "purpose": "Explanations, method copy, and report summaries."
+      },
+      "data": {
+        "displayName": "Index Data",
+        "purpose": "Relationship scores and delta values."
+      }
+    },
+    "elevation": {
+      "soft-panel": "0 10px 26px rgb(31 41 51 / 7%)",
+      "raised-panel": "0 18px 42px rgb(31 41 51 / 13%)",
+      "control-inset": "inset 0 1px 2px rgb(31 41 51 / 6%)"
+    },
+    "motion": {
+      "fast": "140ms",
+      "standard": "160ms",
+      "contentPulse": "900ms",
+      "rule": "Motion conveys state only: hover, focus, selection, loading, and content update."
+    },
+    "breakpoints": {
+      "mobile": "max-width: 820px"
+    },
+    "componentNotes": {
+      "relationshipCard": "Clickable repeated card with 8px radius, white surface, compact country pair, index value, delta, and sparkline.",
+      "trendChart": "Signature data component. Prioritize 50 neutral line, selected turning segment, current score, and date readability.",
+      "explanationPanel": "Reading panel for the selected trend segment. Needs strong hierarchy between direction, date range, main event, evidence, and reports.",
+      "methodBox": "Trust and limitation section. Keep available but secondary."
+    },
+    "dos": [
+      "Keep the interface product-first and reader-first.",
+      "Use semantic color with text labels.",
+      "Use 8px panels and restrained shadows.",
+      "Improve beauty through proportion, rhythm, and clarity."
+    ],
+    "donts": [
+      "Do not make it look like an intelligence operations screen.",
+      "Do not make it feel like a financial trading terminal.",
+      "Do not add generic AI-style card stacks, decoration gradients, or nested cards.",
+      "Do not use color as the only state cue."
+    ]
+  }
+}

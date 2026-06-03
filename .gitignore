@@ -1,11 +1,14 @@
 .venv/
 node_modules/
 .next/
+.playwright-cli/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+logs/
+output/
 tsconfig.tsbuildinfo
 .DS_Store
 *.pyc
