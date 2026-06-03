@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date as Date
 from typing import Any, cast
 from urllib.error import HTTPError, URLError
@@ -87,7 +87,7 @@ class DeepSeekClient:
         request_payload = build_deepseek_payload(prompt_input, self.model)
         response = self.requester(request_payload, self.api_key, self.api_url)
         content = extract_response_content(response)
-        return parse_ai_explanation(content)
+        return complete_ai_explanation(parse_ai_explanation(content), prompt_input)
 
 
 def build_deepseek_payload(prompt_input: AiExplanationInput, model: str) -> dict[str, Any]:
@@ -191,8 +191,6 @@ def parse_ai_explanation(content: str) -> AiExplanation:
     if not isinstance(evidence_value, list):
         raise ValueError("DeepSeek JSON response must include evidence as a list.")
     evidence = tuple(str(item).strip() for item in evidence_value if str(item).strip())
-    if not evidence:
-        raise ValueError("DeepSeek JSON response evidence cannot be empty.")
     return AiExplanation(
         main_event=main_event,
         summary=summary,
@@ -200,6 +198,23 @@ def parse_ai_explanation(content: str) -> AiExplanation:
         caveat=caveat,
         report_summaries=parse_report_summaries(raw.get("report_summaries")),
     )
+
+
+def complete_ai_explanation(explanation: AiExplanation, prompt_input: AiExplanationInput) -> AiExplanation:
+    if explanation.evidence or not prompt_input.reports:
+        return explanation
+    return replace(explanation, evidence=fallback_evidence_from_reports(prompt_input.reports))
+
+
+def fallback_evidence_from_reports(reports: tuple[AiReportInput, ...]) -> tuple[str, ...]:
+    evidence: list[str] = []
+    for report in reports:
+        source = report.source_domain.strip() or "来源网站"
+        title = report.title.strip() or "相关报道"
+        event_type = report.event_type.strip()
+        suffix = f"，事件类型为{event_type}" if event_type else ""
+        evidence.append(f"{report.date.isoformat()}：{source} 报道标题为“{title}”{suffix}。")
+    return tuple(evidence)
 
 
 def parse_report_summaries(value: Any) -> tuple[AiReportSummary, ...]:

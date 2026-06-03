@@ -13,6 +13,7 @@ from relationship_temperature.ai import (
     DeepSeekClient,
     MissingDeepSeekKeyError,
     build_deepseek_payload,
+    complete_ai_explanation,
     parse_ai_explanation,
     truncate_error_body,
 )
@@ -108,6 +109,26 @@ def test_parse_ai_explanation_keeps_all_evidence_items() -> None:
 
     assert len(parsed.evidence) == 6
     assert parsed.evidence[-1] == "2026-04-06：第六条报道线索"
+
+
+def test_complete_ai_explanation_fills_empty_evidence_from_reports() -> None:
+    parsed = parse_ai_explanation(
+        json.dumps(
+            {
+                "main_event": "报道线索集中",
+                "summary": "相关报道线索覆盖多个来源。",
+                "evidence": [],
+                "report_summaries": [],
+                "caveat": "这是媒体事件信号。",
+            }
+        )
+    )
+
+    completed = complete_ai_explanation(parsed, make_prompt_input())
+
+    assert completed.evidence == (
+        "2026-04-03：example.com 报道标题为“Russia strikes targets near Kyiv”，事件类型为战斗。",
+    )
 
 
 def test_deepseek_client_raises_when_key_missing() -> None:
