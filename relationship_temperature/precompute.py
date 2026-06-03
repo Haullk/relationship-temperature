@@ -5,7 +5,7 @@ from datetime import date
 
 from relationship_temperature.config import load_candidate_pool
 from relationship_temperature.db import connect, ensure_cache_schema, write_cache_transaction
-from relationship_temperature.enrichment import enrich_featured_relationships
+from relationship_temperature.enrichment import enrich_cached_relationships
 from relationship_temperature.loader import load_events_for_all_pairs
 from relationship_temperature.processing import process_relationship
 
@@ -35,14 +35,14 @@ def main() -> None:
     parser.add_argument(
         "--with-ai",
         action="store_true",
-        help="Also enrich featured pairs with metadata and AI summaries.",
+        help="Also enrich every cached relationship with metadata and AI summaries.",
     )
     args = parser.parse_args()
 
     count = run_precompute(end_date=args.end_date, days=args.days)
     print(f"precomputed {count} relationship pairs")
     if args.with_ai:
-        results = enrich_featured_relationships()
+        results = enrich_cached_relationships(refresh_errors=True)
         ready = sum(1 for result in results if result.ai_status == "ready")
         print(f"ai enriched {ready}/{len(results)} turning points")
 

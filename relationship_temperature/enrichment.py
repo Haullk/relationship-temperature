@@ -4,7 +4,7 @@ import argparse
 import hashlib
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -62,11 +62,29 @@ def enrich_featured_relationships(
     *,
     client: DeepSeekClient | None = None,
     fetcher: Callable[[str], FetchResponse] | None = None,
+    refresh_errors: bool = False,
 ) -> list[EnrichmentResult]:
     pool = load_candidate_pool()
+    pair_ids = [featured_pair.pair_id for featured_pair in pool.featured_pairs]
+    return enrich_cached_relationships(
+        pair_ids=pair_ids,
+        client=client,
+        fetcher=fetcher,
+        refresh_errors=refresh_errors,
+    )
+
+
+def enrich_cached_relationships(
+    *,
+    pair_ids: Iterable[str] | None = None,
+    client: DeepSeekClient | None = None,
+    fetcher: Callable[[str], FetchResponse] | None = None,
+    refresh_errors: bool = False,
+) -> list[EnrichmentResult]:
+    actual_pair_ids = list(pair_ids) if pair_ids is not None else read_cached_relationship_pair_ids()
     results: list[EnrichmentResult] = []
-    for featured_pair in pool.featured_pairs:
-        payload = read_relationship_payload(featured_pair.pair_id)
+    for pair_id in actual_pair_ids:
+        payload = read_relationship_payload(pair_id)
         if payload is None:
             continue
         relationship = payload
@@ -74,11 +92,12 @@ def enrich_featured_relationships(
             if isinstance(point, dict) and isinstance(point.get("date"), str):
                 results.append(
                     enrich_turning_point_with_retry(
-                        featured_pair.pair_id,
+                        pair_id,
                         date.fromisoformat(point["date"]),
                         payload=relationship,
                         client=client,
                         fetcher=fetcher,
+                        refresh_errors=refresh_errors,
                     )
                 )
     return results
@@ -91,6 +110,7 @@ def enrich_turning_point_with_retry(
     payload: dict[str, Any] | None = None,
     client: DeepSeekClient | None = None,
     fetcher: Callable[[str], FetchResponse] | None = None,
+    refresh_errors: bool = False,
     max_attempts: int = MAX_ENRICHMENT_RETRIES,
 ) -> EnrichmentResult:
     for attempt in range(1, max_attempts + 1):
@@ -101,6 +121,7 @@ def enrich_turning_point_with_retry(
                 payload=payload,
                 client=client,
                 fetcher=fetcher,
+                refresh_errors=refresh_errors,
             )
         except Exception as exc:
             if not is_retryable_database_error(exc) or attempt >= max_attempts:
@@ -122,6 +143,7 @@ def enrich_turning_point(
     payload: dict[str, Any] | None = None,
     client: DeepSeekClient | None = None,
     fetcher: Callable[[str], FetchResponse] | None = None,
+    refresh_errors: bool = False,
 ) -> EnrichmentResult:
     with connect() as conn:
         ensure_cache_schema(conn)
@@ -140,7 +162,7 @@ def enrich_turning_point(
         actual_client = client or DeepSeekClient()
         model = actual_client.model or DEFAULT_DEEPSEEK_MODEL
         cached = read_ai_cache(conn, pair_id, turning_point_date, input_hash, model)
-        if cached is not None:
+        if cached is not None and should_use_ai_cache(cached, refresh_errors=refresh_errors):
             apply_ai_cache_to_turning_point(turning_point, cached)
             _update_relationship_payload(conn, pair_id, relationship_payload)
             return EnrichmentResult(
@@ -298,6 +320,12 @@ def apply_ai_cache_to_turning_point(turning_point: dict[str, Any], cached: AiCac
     turning_point["ai_status"] = cached.status
 
 
+def should_use_ai_cache(cached: AiCacheRecord, *, refresh_errors: bool) -> bool:
+    if cached.status == "ready":
+        return True
+    return not refresh_errors
+
+
 def apply_ai_to_turning_point(
     turning_point: dict[str, Any],
     explanation: AiExplanation,
@@ -379,6 +407,23 @@ def read_relationship_payload(pair_id: str) -> dict[str, Any] | None:
     with connect() as conn:
         ensure_cache_schema(conn)
         return _read_relationship_payload(conn, pair_id)
+
+
+def read_cached_relationship_pair_ids() -> list[str]:
+    with connect() as conn:
+        ensure_cache_schema(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select pair_id
+                from relationship_trend_cache
+                where jsonb_typeof(payload->'turning_points') = 'array'
+                  and jsonb_array_length(payload->'turning_points') > 0
+                order by pair_id
+                """
+            )
+            rows = cur.fetchall()
+    return [str(row["pair_id"]) for row in rows]
 
 
 def _read_relationship_payload(conn: Any, pair_id: str) -> dict[str, Any] | None:
@@ -543,15 +588,25 @@ def main() -> None:
     parser.add_argument("--pair", help="Pair id, e.g. rus_ukr")
     parser.add_argument("--turning-point-date", help="Turning point date, e.g. 2026-04-06")
     parser.add_argument("--featured", action="store_true", help="Enrich all featured pairs.")
+    parser.add_argument("--all", action="store_true", help="Enrich every cached relationship with turning points.")
+    parser.add_argument("--force", action="store_true", help="Retry cached non-ready AI results.")
     args = parser.parse_args()
 
+    if args.all:
+        results = enrich_cached_relationships(refresh_errors=args.force)
+        print(json.dumps([result.__dict__ for result in results], ensure_ascii=False, default=str))
+        return
     if args.featured:
-        results = enrich_featured_relationships()
+        results = enrich_featured_relationships(refresh_errors=args.force)
         print(json.dumps([result.__dict__ for result in results], ensure_ascii=False, default=str))
         return
     if not args.pair or not args.turning_point_date:
-        parser.error("--pair and --turning-point-date are required unless --featured is set")
-    result = enrich_turning_point(args.pair, date.fromisoformat(args.turning_point_date))
+        parser.error("--pair and --turning-point-date are required unless --featured or --all is set")
+    result = enrich_turning_point(
+        args.pair,
+        date.fromisoformat(args.turning_point_date),
+        refresh_errors=args.force,
+    )
     print(json.dumps(result.__dict__, ensure_ascii=False, default=str))
 
 

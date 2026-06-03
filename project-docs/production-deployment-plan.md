@@ -160,7 +160,7 @@ cd /var/www/relationship-temperature
 - 默认导入 UTC 昨日的 96 个 15 分钟 export 文件。
 - `--prune-days 120` 会从最新事件日期往前保留 120 天事件，控制 VPS 磁盘占用。
 - `--precompute` 会在导入后更新关系产品缓存。
-- `--with-ai` 会补充重点关系趋势段 AI 解读。
+- `--with-ai` 会补充所有已缓存关系的趋势段 AI 解读，并重试之前生成失败的非 ready 缓存。
 - 测试时可以加 `--limit-files 2`，避免一次导入全天数据。
 
 首次回填最近 90 天时，可以按天循环执行：
@@ -975,7 +975,7 @@ curl -k -s -o /dev/null -w '%{http_code}\n' https://www.geoprizm.com/.git/config
 - `http://VPS_IP` 能打开页面。
 - `/api/trend` 返回 `cacheStatus` 和 `relationship` 数据。
 - 页面重点关系卡片有数据。
-- 点击趋势段后 AI 解读接口能返回结果或明确的错误提示。
+- 点击趋势段后优先展示每日任务预生成的 AI 解读；若该段尚未生成，接口能按需生成或返回明确的错误提示。
 - 域名接入后 HTTPS 小锁正常。
 - 重启 VPS 后服务自动恢复。
 

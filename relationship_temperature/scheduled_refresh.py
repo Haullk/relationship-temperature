@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
 from relationship_temperature.db import connect
-from relationship_temperature.enrichment import enrich_featured_relationships
+from relationship_temperature.enrichment import enrich_cached_relationships
 from relationship_temperature.precompute import run_precompute
 
 DEFAULT_TIMEOUT_SECONDS = 3600
@@ -164,7 +164,7 @@ def run_scheduled_refresh(
     count = run_precompute()
     print(f"precomputed {count} relationship pairs")
     if with_ai:
-        results = enrich_featured_relationships()
+        results = enrich_cached_relationships(refresh_errors=True)
         ready = sum(1 for result in results if result.ai_status == "ready")
         print(f"ai enriched {ready}/{len(results)} turning points")
 

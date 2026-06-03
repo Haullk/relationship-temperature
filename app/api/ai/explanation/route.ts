@@ -16,12 +16,14 @@ const enrichmentTimeoutMs = 120_000;
 interface AiExplanationRequestBody {
   pairId?: unknown;
   turningPointDate?: unknown;
+  force?: unknown;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<AiExplanationResponse>> {
   const body = (await request.json().catch(() => ({}))) as AiExplanationRequestBody;
   const requestedPair = typeof body.pairId === "string" ? body.pairId : null;
   const turningPointDate = typeof body.turningPointDate === "string" ? body.turningPointDate : null;
+  const forceRefresh = body.force === true;
   if (!requestedPair || !turningPointDate || !/^\d{4}-\d{2}-\d{2}$/.test(turningPointDate)) {
     return NextResponse.json(
       { status: "error", message: "pairId and turningPointDate are required.", turningPoint: null },
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<AiExplana
 
   let enrichmentResult: PythonEnrichmentResult = {};
   try {
-    enrichmentResult = await runPythonEnrichment(resolution.pairId, turningPointDate);
+    enrichmentResult = await runPythonEnrichment(resolution.pairId, turningPointDate, { force: forceRefresh });
   } catch (caught) {
     return NextResponse.json({
       status: "error",
@@ -78,11 +80,19 @@ interface PythonEnrichmentResult {
   message?: string | null;
 }
 
-async function runPythonEnrichment(pairId: string, turningPointDate: string): Promise<PythonEnrichmentResult> {
+async function runPythonEnrichment(
+  pairId: string,
+  turningPointDate: string,
+  options: { force: boolean }
+): Promise<PythonEnrichmentResult> {
   const pythonBin = process.env.PYTHON_BIN || path.join(process.cwd(), ".venv", "bin", "python");
+  const args = ["-m", "relationship_temperature.enrichment", "--pair", pairId, "--turning-point-date", turningPointDate];
+  if (options.force) {
+    args.push("--force");
+  }
   const { stdout } = await execFileAsync(
     pythonBin,
-    ["-m", "relationship_temperature.enrichment", "--pair", pairId, "--turning-point-date", turningPointDate],
+    args,
     {
       cwd: process.cwd(),
       env: process.env,

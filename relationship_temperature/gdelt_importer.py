@@ -17,7 +17,7 @@ from urllib.request import Request, urlopen
 
 from relationship_temperature.config import load_candidate_pool
 from relationship_temperature.db import connect, ensure_cache_schema
-from relationship_temperature.enrichment import enrich_featured_relationships
+from relationship_temperature.enrichment import enrich_cached_relationships
 from relationship_temperature.precompute import run_precompute
 
 GDELT_BASE_URL = "http://data.gdeltproject.org/gdeltv2"
@@ -584,7 +584,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wait-timeout-minutes", type=int, default=DEFAULT_WAIT_TIMEOUT_MINUTES)
     parser.add_argument("--wait-interval-seconds", type=int, default=DEFAULT_WAIT_INTERVAL_SECONDS)
     parser.add_argument("--precompute", action="store_true", help="Run relationship precompute after importing.")
-    parser.add_argument("--with-ai", action="store_true", help="Run AI enrichment after precompute.")
+    parser.add_argument("--with-ai", action="store_true", help="Run AI enrichment for every cached pair after precompute.")
     parser.add_argument("--precompute-days", type=int, default=90, help="Lookback days for relationship precompute.")
     parser.add_argument(
         "--prune-days",
@@ -632,7 +632,7 @@ def main() -> None:
         count = run_precompute(days=args.precompute_days)
         print(f"precomputed {count} relationship pairs")
         if args.with_ai:
-            results = enrich_featured_relationships()
+            results = enrich_cached_relationships(refresh_errors=True)
             ready = sum(1 for result in results if result.ai_status == "ready")
             print(f"ai enriched {ready}/{len(results)} turning points")
 

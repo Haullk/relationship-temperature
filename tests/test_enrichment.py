@@ -14,6 +14,7 @@ from relationship_temperature.enrichment import (
     merge_metadata_into_turning_point,
     sanitize_error_message,
     short_summary,
+    should_use_ai_cache,
 )
 from relationship_temperature.metadata import ReportMetadata
 
@@ -151,6 +152,15 @@ def test_apply_ai_payload_and_cached_error_status() -> None:
         AiCacheRecord(status="error", ai_payload=None, error_message="boom", generated_at=None),
     )
     assert error_point["ai_status"] == "error"
+
+
+def test_cached_error_can_be_retried_when_forced() -> None:
+    error_cache = AiCacheRecord(status="error", ai_payload=None, error_message="boom", generated_at=None)
+    ready_cache = AiCacheRecord(status="ready", ai_payload={"summary": "ready"}, error_message=None, generated_at=None)
+
+    assert should_use_ai_cache(error_cache, refresh_errors=False)
+    assert not should_use_ai_cache(error_cache, refresh_errors=True)
+    assert should_use_ai_cache(ready_cache, refresh_errors=True)
 
 
 def test_apply_ai_payload_fills_missing_report_translation_with_chinese_fallback() -> None:

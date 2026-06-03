@@ -139,7 +139,7 @@ function TrendApp() {
       setAiMessage(null);
     }
     try {
-      const response = await requestAiExplanation(pairId, turningPointDate);
+      const response = await requestAiExplanation(pairId, turningPointDate, { force: options.force === true });
       const updatedTurningPoint = response.turningPoint;
       if (updatedTurningPoint) {
         setData((previous) => replaceTurningPoint(previous, pairId, updatedTurningPoint));
@@ -1180,11 +1180,15 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
   }
 }
 
-async function requestAiExplanation(pairId: string, turningPointDate: string): Promise<AiExplanationResponse> {
+async function requestAiExplanation(
+  pairId: string,
+  turningPointDate: string,
+  options: { force?: boolean } = {}
+): Promise<AiExplanationResponse> {
   const response = await fetch("/api/ai/explanation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pairId, turningPointDate })
+    body: JSON.stringify({ pairId, turningPointDate, force: options.force === true })
   });
   const payload = (await response.json()) as AiExplanationResponse;
   if (!response.ok) {
