@@ -254,13 +254,15 @@ summary:focus-visible,
   align-content: stretch;
   justify-items: end;
   gap: 14px;
-  min-width: max-content;
+  width: max-content;
+  min-width: 0;
 }
 
 .action-stack {
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  justify-content: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -313,6 +315,19 @@ summary:focus-visible,
   width: 17px;
   height: 17px;
   flex: 0 0 auto;
+}
+
+.github-project-link {
+  padding: 0 13px;
+}
+
+.email-link {
+  font-weight: 700;
+}
+
+.wechat-link {
+  width: auto;
+  padding: 0 13px;
 }
 
 .status-card {
@@ -502,12 +517,24 @@ summary:focus-visible,
   }
 
   .action-stack {
-    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    justify-content: flex-start;
     width: 100%;
   }
 
   .header-link {
     width: 100%;
+  }
+
+  .github-project-link {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .email-link {
+    justify-content: flex-start;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .status-card {

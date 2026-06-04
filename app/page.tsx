@@ -398,11 +398,11 @@ function TrendApp() {
         <div className="header-actions" id="header-actions">
           <div className="action-stack" aria-label="项目链接">
             <a
-              className="header-link primary"
+              className="header-link primary github-project-link"
               href="https://github.com/Haullk/relationship-temperature"
               target="_blank"
               rel="noreferrer"
-              aria-label="在 GitHub 查看项目并点星"
+              aria-label="在 GitHub 查看项目"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path
@@ -411,9 +411,9 @@ function TrendApp() {
                   d="M12 .5C5.65.5.85 5.38.85 11.75c0 4.98 3.23 9.2 7.72 10.69.56.1.77-.24.77-.54v-2.02c-3.14.68-3.8-1.35-3.8-1.35-.51-1.31-1.25-1.66-1.25-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.73 2.65 1.23 3.3.94.1-.73.39-1.23.71-1.51-2.51-.28-5.15-1.25-5.15-5.57 0-1.23.44-2.24 1.17-3.03-.12-.29-.51-1.44.11-2.99 0 0 .96-.31 3.13 1.16.91-.25 1.88-.38 2.85-.38s1.94.13 2.85.38c2.17-1.47 3.13-1.16 3.13-1.16.62 1.55.23 2.7.11 2.99.73.79 1.17 1.8 1.17 3.03 0 4.33-2.65 5.28-5.17 5.56.41.35.77 1.04.77 2.11v3.13c0 .3.2.65.78.54a11.27 11.27 0 0 0 7.71-10.69C23.15 5.38 18.35.5 12 .5Z"
                 />
               </svg>
-              GitHub 点星
+              GitHub
             </a>
-            <a className="header-link" href="mailto:helioshulk@gmail.com">
+            <a className="header-link email-link" href="mailto:helioshulk@gmail.com" aria-label="发送邮件到 helioshulk@gmail.com">
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4.75 6.75h14.5v10.5H4.75V6.75Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
                 <path
@@ -424,9 +424,9 @@ function TrendApp() {
                   strokeWidth="1.8"
                 />
               </svg>
-              邮箱联系
+              helioshulk@gmail.com
             </a>
-            <button className="header-link" type="button" onClick={() => setWechatOpen(true)}>
+            <button className="header-link wechat-link" type="button" aria-label="打开微信公众号二维码" onClick={() => setWechatOpen(true)}>
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path
                   d="M9.75 15.75c-3.04 0-5.5-1.92-5.5-4.3s2.46-4.3 5.5-4.3 5.5 1.92 5.5 4.3-2.46 4.3-5.5 4.3Z"
@@ -443,7 +443,7 @@ function TrendApp() {
                 />
                 <path d="M7.75 10.85h.01M11.75 10.85h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" />
               </svg>
-              微信公众号
+              微信
             </button>
           </div>
 
