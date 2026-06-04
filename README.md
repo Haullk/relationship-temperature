@@ -1,37 +1,82 @@
-# 双边关系看板
-https://www.geoprizm.com
-基于 GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。
-<img width="1162" height="1224" alt="image" src="https://github.com/user-attachments/assets/67b8d104-f3ba-4437-964a-82b747c3ac18" />
+# GeoPrizm 双边关系看板
 
-## 产品定位
+[![Website](https://img.shields.io/badge/Live-geoprizm.com-2563eb?style=flat-square)](https://www.geoprizm.com)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Data](https://img.shields.io/badge/Data-GDELT-0f766e?style=flat-square)](https://www.gdeltproject.org/)
 
-这个项目是一个面向普通读者的双边关系趋势看板。用户可以选择候选国家对，查看 0-100 的关系指数走势，并点击趋势段理解指数变化背后的新闻事件线索。
+GeoPrizm 是一个面向普通读者的国际关系趋势看板。它基于 GDELT 结构化新闻事件数据，把主要国家和地区之间的公开新闻信号转成 0-100 的关系指数，并用中文解释近期趋势变化背后的报道线索。
 
-- 50 为中性
-- 高于 50 偏友好
-- 低于 50 偏紧张
+在线访问：[www.geoprizm.com](https://www.geoprizm.com)
+
+如果你对国际新闻、地缘政治、公共事务数据产品或 GDELT 数据分析感兴趣，欢迎 Star 这个项目，也欢迎通过 Issue 提反馈。
+
+<img width="1162" height="1224" alt="GeoPrizm 双边关系看板截图" src="https://github.com/user-attachments/assets/67b8d104-f3ba-4437-964a-82b747c3ac18" />
+
+## 它解决什么问题
+
+每天的国际新闻很多，但普通读者很难快速判断一组双边关系最近是在改善、恶化还是维持稳定。GeoPrizm 试图把分散的新闻事件整理成一个可读的趋势视图：
+
+- 一分钟内看懂一组关系的当前冷暖
+- 查看近 90 天关系指数走势
+- 找到明显转折的时间段
+- 阅读 AI 辅助生成的中文趋势解释
+- 回到具体报道线索，而不是只看一个抽象分数
+
+关系指数的含义：
+
+- `50` 为中性
+- 高于 `50` 偏友好
+- 低于 `50` 偏紧张
 - 指数反映媒体事件信号，不代表官方外交立场
 
-## 当前支持
+## 当前功能
+
+- 关系指数：基于 GDELT GoldsteinScale 合作/冲突信号计算 0-100 指数
+- 趋势图：展示近 90 天走势，并支持切换观察窗口
+- 转折点：识别关系变化明显的趋势段
+- 新闻线索：展示与趋势变化相关的报道标题、描述和来源链接
+- AI 解读：用中文总结趋势主线、关键事件和可能解释
+- 候选关系：支持从国家和地区候选池中选择合法关系组合
+- 数据缓存：预计算关系产品表，前端/API 读取缓存以提升访问速度
+
+## 支持范围
 
 候选对象：
 
-- 中国、美国、俄罗斯、欧洲、日本、印度、伊朗、中国台湾、乌克兰
+- 中国
+- 美国
+- 俄罗斯
+- 欧洲
+- 日本
+- 印度
+- 伊朗
+- 中国台湾
+- 乌克兰
 
 重点关系：
 
-- 中美、中俄、中欧、中日、中印、美伊、美俄、俄乌
+- 中美
+- 中俄
+- 中欧
+- 中日
+- 中印
+- 美伊
+- 美俄
+- 俄乌
 
 ## 技术栈
 
 - 前端与 API：Next.js / React / TypeScript
 - 数据处理：Python
-- 数据库：PostgreSQL，可读取 MapNews 共用数据库，也可由本项目独立导入 GDELT 事件切片
+- 数据库：PostgreSQL
+- 数据源：GDELT 2.0 Events
 - AI 解读：DeepSeek `deepseek-v4-flash`
+- 测试：Vitest / pytest / mypy / ruff
 
 ## 数据流程
 
-1. 从 `gdelt_events_clean` 读取候选国家对事件。该表既可以来自 MapNews，也可以由本项目独立导入 GDELT 2.0 export 文件生成。
+1. 从 `gdelt_events_clean` 读取候选国家对事件。该表既可以来自 MapNews，也可以由本项目独立导入 GDELT 2.0 Events export 文件生成。
 2. 用 GDELT GoldsteinScale 合作/冲突信号计算每日关系指数。
 3. 用 14 日滚动平均生成趋势线。
 4. 检测趋势段，筛选相关报道线索。
@@ -39,9 +84,17 @@ https://www.geoprizm.com
 6. 使用 AI 生成中文趋势摘要、主线和报道短摘要。
 7. 写入关系产品缓存表，前端/API 读取缓存展示。
 
-## 环境变量
+## 本地启动
 
-复制 `.env.example` 到 `.env.local`，并填入本地配置：
+安装依赖：
+
+```bash
+npm install
+python -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+```
+
+复制环境变量模板：
 
 ```bash
 cp .env.example .env.local
@@ -61,37 +114,10 @@ PYTHON_BIN=.venv/bin/python
 
 `.env.local` 不要提交到 GitHub。
 
-## 本地启动
-
-安装依赖：
-
-```bash
-npm install
-python -m venv .venv
-.venv/bin/python -m pip install -e ".[dev]"
-```
-
-初始化/更新关系产品表：
+初始化或更新关系产品表：
 
 ```bash
 .venv/bin/python -m relationship_temperature.precompute
-```
-
-如果不依赖 MapNews，可先由本项目独立导入 GDELT 2.0 Events export 文件，再预计算缓存：
-
-```bash
-.venv/bin/python -m relationship_temperature.gdelt_importer \
-  --date 2026-06-02 \
-  --wait-for-files \
-  --precompute \
-  --with-ai \
-  --prune-days 120
-```
-
-只测试少量文件时可加：
-
-```bash
-.venv/bin/python -m relationship_temperature.gdelt_importer --date 2026-06-02 --limit-files 2 --precompute
 ```
 
 启动 Web：
@@ -105,6 +131,30 @@ npm run dev -- -p 3001
 ```text
 http://localhost:3001
 ```
+
+## 独立导入 GDELT
+
+如果不依赖 MapNews，可由本项目独立导入 GDELT 2.0 Events export 文件，再预计算缓存：
+
+```bash
+.venv/bin/python -m relationship_temperature.gdelt_importer \
+  --date 2026-06-02 \
+  --wait-for-files \
+  --precompute \
+  --with-ai \
+  --prune-days 120
+```
+
+只测试少量文件时可加：
+
+```bash
+.venv/bin/python -m relationship_temperature.gdelt_importer \
+  --date 2026-06-02 \
+  --limit-files 2 \
+  --precompute
+```
+
+默认导入 UTC 昨日的 96 个 GDELT 2.0 Events export 文件，只保留候选国家代码之间的事件，并写入兼容的 `gdelt_events_clean` 表。
 
 ## 每日刷新
 
@@ -125,7 +175,7 @@ http://localhost:3001
 
 若约 1 小时内条件仍不满足，任务会报错退出。
 
-如果生产环境由本项目独立导入 GDELT，推荐定时运行：
+生产环境如果由本项目独立导入 GDELT，推荐定时运行：
 
 ```bash
 cd /path/to/relationship-temperature
@@ -135,8 +185,6 @@ cd /path/to/relationship-temperature
   --with-ai \
   --prune-days 120
 ```
-
-该命令默认导入 UTC 昨日的 96 个 GDELT 2.0 Events export 文件，只保留候选国家代码之间的事件，并写入兼容的 `gdelt_events_clean` 表。
 
 ## 测试
 
@@ -167,3 +215,11 @@ Python：
 
 - GDELT 2.0 Event Codebook
 - CAMEO 事件编码框架
+
+## 路线图
+
+- 增加更多国家和地区组合
+- 为重点关系提供英文界面
+- 增加趋势变化的可解释性指标
+- 提供公开更新日志和数据刷新状态页
+- 改进分享卡片和 GitHub social preview
