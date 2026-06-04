@@ -1,6 +1,7 @@
 # 双边关系看板
-
+https://www.geoprizm.com
 基于 GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。
+<img width="1162" height="1224" alt="image" src="https://github.com/user-attachments/assets/67b8d104-f3ba-4437-964a-82b747c3ac18" />
 
 ## 产品定位
 
