@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   forwardRef,
   useCallback,
@@ -105,7 +106,10 @@ function TrendApp() {
   const [contentUpdated, setContentUpdated] = useState(false);
   const [aiPendingKeys, setAiPendingKeys] = useState<Set<string>>(() => new Set());
   const [aiMessage, setAiMessage] = useState<string | null>(null);
+  const [headerActionsOpen, setHeaderActionsOpen] = useState(false);
+  const [wechatOpen, setWechatOpen] = useState(false);
   const explanationRef = useRef<HTMLElement | null>(null);
+  const wechatCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const shareResetTimer = useRef<number | null>(null);
   const contentUpdateTimer = useRef<number | null>(null);
   const draftAutoLoadTimer = useRef<number | null>(null);
@@ -285,6 +289,23 @@ function TrendApp() {
     setAiMessage(null);
   }, [relationship?.pair_id, selectedTurning?.date]);
 
+  useEffect(() => {
+    if (!wechatOpen) {
+      return;
+    }
+
+    window.setTimeout(() => wechatCloseButtonRef.current?.focus(), 0);
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setWechatOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [wechatOpen]);
+
   function queueDraftPairAnalysis(leftObject: string, rightObject: string) {
     if (!isLegalPair(leftObject, rightObject, legalPairIds)) {
       return;
@@ -335,25 +356,133 @@ function TrendApp() {
 
   return (
     <main className="page-shell">
-      <header className="topbar">
-        <div className="brand-block">
+      <header className={`topbar${headerActionsOpen ? " is-open" : ""}`}>
+        <div className="brand-area">
           <span className="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 64 64" focusable="false">
               <circle className="brand-circle warm" cx="25" cy="32" r="17" />
               <circle className="brand-circle cool" cx="39" cy="32" r="17" />
             </svg>
           </span>
-          <div>
-            <h1>双边关系看板</h1>
-            <p className="topbar-subtitle">基于全球新闻信号，追踪主要国家双边关系动态</p>
+          <div className="brand-copy">
+            <h1>GeoPrizm</h1>
+            <p className="topbar-subtitle">
+              <strong>双边关系看板</strong>：基于全球新闻信号，追踪主要国家双边关系动态
+            </p>
+            <div className="signal-row" aria-label="产品信号">
+              <span className="signal">
+                <span className="signal-dot" aria-hidden="true" />
+                GDELT / CAMEO 新闻信号
+              </span>
+              <span className="signal">
+                <span className="signal-dot warm" aria-hidden="true" />
+                中文 AI 趋势解读
+              </span>
+            </div>
           </div>
+
+          <button
+            className="icon-button mobile-toggle"
+            type="button"
+            aria-expanded={headerActionsOpen}
+            aria-controls="header-actions"
+            aria-label={headerActionsOpen ? "收起联系入口" : "展开联系入口"}
+            onClick={() => setHeaderActionsOpen((open) => !open)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 7h14M5 12h14M5 17h14" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+            </svg>
+          </button>
         </div>
-        <div className="updated live-status">
-          <span className="live-dot" aria-hidden="true" />
-          <span>实时更新</span>
-          <span>{relationship?.data_end ? `最新数据：${relationship.data_end}` : "等待缓存数据"}</span>
+
+        <div className="header-actions" id="header-actions">
+          <div className="action-stack" aria-label="项目链接">
+            <a
+              className="header-link primary"
+              href="https://github.com/Haullk/relationship-temperature"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M12 .5C5.65.5.85 5.38.85 11.75c0 4.98 3.23 9.2 7.72 10.69.56.1.77-.24.77-.54v-2.02c-3.14.68-3.8-1.35-3.8-1.35-.51-1.31-1.25-1.66-1.25-1.66-1.03-.7.08-.69.08-.69 1.14.08 1.74 1.17 1.74 1.17 1.01 1.73 2.65 1.23 3.3.94.1-.73.39-1.23.71-1.51-2.51-.28-5.15-1.25-5.15-5.57 0-1.23.44-2.24 1.17-3.03-.12-.29-.51-1.44.11-2.99 0 0 .96-.31 3.13 1.16.91-.25 1.88-.38 2.85-.38s1.94.13 2.85.38c2.17-1.47 3.13-1.16 3.13-1.16.62 1.55.23 2.7.11 2.99.73.79 1.17 1.8 1.17 3.03 0 4.33-2.65 5.28-5.17 5.56.41.35.77 1.04.77 2.11v3.13c0 .3.2.65.78.54a11.27 11.27 0 0 0 7.71-10.69C23.15 5.38 18.35.5 12 .5Z"
+                />
+              </svg>
+              GitHub 项目
+            </a>
+            <a className="header-link" href="mailto:helioshulk@gmail.com">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4.75 6.75h14.5v10.5H4.75V6.75Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+                <path
+                  d="m5.25 7.25 6.74 5.35 6.76-5.35"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
+              邮箱联系
+            </a>
+            <button className="header-link" type="button" onClick={() => setWechatOpen(true)}>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M9.75 15.75c-3.04 0-5.5-1.92-5.5-4.3s2.46-4.3 5.5-4.3 5.5 1.92 5.5 4.3-2.46 4.3-5.5 4.3Z"
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="1.75"
+                />
+                <path
+                  d="M14.25 10.15c2.8.25 4.95 1.98 4.95 4.08 0 1.21-.7 2.29-1.82 3.04l.44 1.73-1.9-.93c-.55.15-1.12.23-1.72.23-2.19 0-4.08-.98-4.9-2.39"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.75"
+                />
+                <path d="M7.75 10.85h.01M11.75 10.85h.01" stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" />
+              </svg>
+              微信公众号
+            </button>
+          </div>
+
+          <aside className="status-card" aria-label="项目状态摘要">
+            <span className="live-dot" aria-hidden="true" />
+            <span>最新数据：</span>
+            {relationship?.data_end ? <time dateTime={relationship.data_end}>{relationship.data_end}</time> : <span>等待缓存数据</span>}
+          </aside>
         </div>
       </header>
+
+      {wechatOpen ? (
+        <div
+          className="wechat-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="wechat-modal-title"
+          aria-describedby="wechat-modal-description"
+          onClick={() => setWechatOpen(false)}
+        >
+          <section className="wechat-modal-card" onClick={(event) => event.stopPropagation()}>
+            <button
+              ref={wechatCloseButtonRef}
+              className="wechat-close"
+              type="button"
+              aria-label="关闭微信公众号二维码"
+              onClick={() => setWechatOpen(false)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+              </svg>
+            </button>
+            <div>
+              <h2 id="wechat-modal-title">微信公众号</h2>
+              <p id="wechat-modal-description">扫码关注项目更新</p>
+            </div>
+            <Image className="wechat-qr" src="/wechat-qr.jpg" alt="微信公众号二维码" width={430} height={430} />
+          </section>
+        </div>
+      ) : null}
 
       {initialLoading ? <Skeleton /> : null}
       {slow ? <Notice tone="warn" text="数据加载较慢，请稍后或重试。" /> : null}
