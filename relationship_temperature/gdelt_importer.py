@@ -584,7 +584,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wait-timeout-minutes", type=int, default=DEFAULT_WAIT_TIMEOUT_MINUTES)
     parser.add_argument("--wait-interval-seconds", type=int, default=DEFAULT_WAIT_INTERVAL_SECONDS)
     parser.add_argument("--precompute", action="store_true", help="Run relationship precompute after importing.")
-    parser.add_argument("--with-ai", action="store_true", help="Run AI enrichment for every cached pair after precompute.")
+    parser.add_argument(
+        "--with-ai",
+        action="store_true",
+        help="Run AI enrichment for every cached pair after precompute.",
+    )
     parser.add_argument("--precompute-days", type=int, default=90, help="Lookback days for relationship precompute.")
     parser.add_argument(
         "--prune-days",

@@ -4,12 +4,20 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=nextdotjs)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Data](https://img.shields.io/badge/Data-GDELT-0f766e?style=flat-square)](https://www.gdeltproject.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-111827?style=flat-square)](LICENSE)
 
 GeoPrizm 是一个面向普通读者的国际关系趋势看板。它基于 GDELT 结构化新闻事件数据，把主要国家和地区之间的公开新闻信号转成 0-100 的关系指数，并用中文解释近期趋势变化背后的报道线索。
 
 在线访问：[www.geoprizm.com](https://www.geoprizm.com)
 
 如果你对国际新闻、地缘政治、公共事务数据产品或 GDELT 数据分析感兴趣，欢迎 Star 这个项目，也欢迎通过 Issue 提反馈。
+
+快速入口：
+
+- 在线看板：[www.geoprizm.com](https://www.geoprizm.com)
+- 参与贡献：[CONTRIBUTING.md](CONTRIBUTING.md)
+- 更新记录：[CHANGELOG.md](CHANGELOG.md)
+- 开源协议：[MIT License](LICENSE)
 
 <img width="1162" height="1224" alt="GeoPrizm 双边关系看板截图" src="https://github.com/user-attachments/assets/67b8d104-f3ba-4437-964a-82b747c3ac18" />
 
@@ -90,7 +98,7 @@ GeoPrizm 是一个面向普通读者的国际关系趋势看板。它基于 GDEL
 
 ```bash
 npm install
-python -m venv .venv
+python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 ```
 
