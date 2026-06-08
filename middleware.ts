@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { normalizeKnownPairId, pairCanonicalPath } from "@/lib/pairSeo";
+import { normalizeKnownPairId, pairCanonicalUrl } from "@/lib/pairSeo";
 
 export function middleware(request: NextRequest) {
   const pairId = normalizeKnownPairId(request.nextUrl.searchParams.get("pair"));
@@ -8,10 +8,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const url = request.nextUrl.clone();
-  url.pathname = pairCanonicalPath(pairId);
-  url.searchParams.delete("pair");
-  return NextResponse.redirect(url, 308);
+  return NextResponse.redirect(pairCanonicalUrl(pairId), 308);
 }
 
 export const config = {
