@@ -49,7 +49,7 @@ function shouldAutoDetectLocale(request: NextRequest): boolean {
   return !isCrawler(request.headers.get("user-agent"));
 }
 
-function preferredLocaleFromAcceptLanguage(header: string | null): Locale | null {
+export function preferredLocaleFromAcceptLanguage(header: string | null): Locale | null {
   if (!header) {
     return null;
   }
@@ -77,7 +77,7 @@ function preferredLocaleFromAcceptLanguage(header: string | null): Locale | null
   return null;
 }
 
-function localeFromLanguageTag(language: string): Locale | null {
+export function localeFromLanguageTag(language: string): Locale | null {
   if (language === "*" || language.startsWith("zh-hans") || language === "zh" || language.startsWith("zh-cn") || language.startsWith("zh-sg")) {
     return "zh-CN";
   }
@@ -96,11 +96,11 @@ function localeFromLanguageTag(language: string): Locale | null {
   return null;
 }
 
-function isCrawler(userAgent: string | null): boolean {
+export function isCrawler(userAgent: string | null): boolean {
   return /bot|crawler|spider|crawling|googlebot|bingbot|duckduckbot|baiduspider|yandexbot|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp/i.test(userAgent ?? "");
 }
 
-function appendVary(current: string | null, value: string): string {
+export function appendVary(current: string | null, value: string): string {
   if (!current) {
     return value;
   }

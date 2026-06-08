@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { defaultLocale, languageAlternates, localeMeta, type Locale } from "@/lib/i18n";
 import "./globals.css";
 
+const adsenseClient = "ca-pub-6263363592987165";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.geoprizm.com"),
   title: localeMeta[defaultLocale].title,
@@ -49,6 +51,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang={htmlLang}>
+      <head>
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         <script
           type="application/ld+json"
