@@ -156,7 +156,7 @@ function buildPairJsonLd(summary: ReturnType<typeof buildPairSeoSummary>, relati
         },
         license: "http://www.gdeltproject.org/about.html#termsofuse",
         isBasedOn: {
-          "@type": "Dataset",
+          "@type": "CreativeWork",
           name: "GDELT 2.0 Event Database",
           url: "https://www.gdeltproject.org/",
           license: "http://www.gdeltproject.org/about.html#termsofuse"
