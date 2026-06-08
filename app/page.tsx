@@ -619,34 +619,58 @@ function TrendApp({
 }
 
 function RelationshipSeoBrief({ summary }: { summary: PairSeoSummary }) {
+  const currentIndex = summary.currentTemperature === null ? "--" : summary.currentTemperature.toFixed(1);
+  const dataDate = summary.dataEnd ?? "等待数据";
+
   return (
-    <section className="relationship-brief" aria-label={`${summary.chineseName}关系摘要`}>
-      <div className="relationship-brief-copy">
-        <p className="relationship-brief-kicker">{summary.englishName} Relations Index</p>
-        <h2>{summary.chineseName}关系指数</h2>
-        <p>{summary.brief}</p>
-        <p>{summary.readingGuide}</p>
-        <p>{summary.methodNote}</p>
+    <details className="relationship-brief" aria-label={`${summary.chineseName}关系摘要`}>
+      <summary className="relationship-brief-summary">
+        <span className="relationship-brief-summary-copy">
+          <span className="relationship-brief-kicker">{summary.englishName} Relations Index</span>
+          <span className="relationship-brief-title">{summary.chineseName}关系摘要</span>
+        </span>
+        <span className="relationship-brief-summary-meta">
+          <span>
+            <span>当前指数</span>
+            <strong>{currentIndex}</strong>
+          </span>
+          <span>
+            <span>更新日期</span>
+            <strong>{dataDate}</strong>
+          </span>
+        </span>
+        <span className="relationship-brief-toggle" aria-hidden="true">
+          <span className="relationship-brief-toggle-closed">查看摘要</span>
+          <span className="relationship-brief-toggle-open">收起摘要</span>
+        </span>
+      </summary>
+      <div className="relationship-brief-body">
+        <div className="relationship-brief-copy">
+          <h2>{summary.chineseName}关系指数</h2>
+          <p>{summary.brief}</p>
+          <p>{summary.readingGuide}</p>
+          <p>{summary.methodNote}</p>
+        </div>
+        <dl className="relationship-brief-facts">
+          <div>
+            <dt>当前指数</dt>
+            <dd>{currentIndex}</dd>
+          </div>
+          <div>
+            <dt>状态</dt>
+            <dd>{summary.statusLabel ?? "观察中"}</dd>
+          </div>
+          <div>
+            <dt>更新日期</dt>
+            <dd>{dataDate}</dd>
+          </div>
+          <div>
+            <dt>数据区间</dt>
+            <dd>{summary.dataStart && summary.dataEnd ? `${summary.dataStart} 至 ${summary.dataEnd}` : "近 90 天"}</dd>
+          </div>
+        </dl>
       </div>
-      <dl className="relationship-brief-facts">
-        <div>
-          <dt>当前指数</dt>
-          <dd>{summary.currentTemperature === null ? "--" : summary.currentTemperature.toFixed(1)}</dd>
-        </div>
-        <div>
-          <dt>状态</dt>
-          <dd>{summary.statusLabel ?? "观察中"}</dd>
-        </div>
-        <div>
-          <dt>更新日期</dt>
-          <dd>{summary.dataEnd ?? "等待数据"}</dd>
-        </div>
-        <div>
-          <dt>数据区间</dt>
-          <dd>{summary.dataStart && summary.dataEnd ? `${summary.dataStart} 至 ${summary.dataEnd}` : "近 90 天"}</dd>
-        </div>
-      </dl>
-    </section>
+    </details>
   );
 }
 
