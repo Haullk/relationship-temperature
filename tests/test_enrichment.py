@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from relationship_temperature.ai import AiExplanation, AiReportSummary
+from relationship_temperature.ai import AiExplanation, AiLocalizedExplanation, AiReportSummary
 from relationship_temperature.enrichment import (
     AiCacheRecord,
     ai_input_hash,
@@ -135,12 +135,21 @@ def test_apply_ai_payload_and_cached_error_status() -> None:
                     summary="报道提到俄方打击和停火希望。",
                 ),
             ),
+            ai_i18n={
+                "en": AiLocalizedExplanation(
+                    main_event="Battlefield strikes intensified",
+                    summary="Reports focused on strikes and fighting, and the relationship index fell.",
+                    evidence=("2026-04-03: example.com reported strikes near Kyiv.",),
+                    caveat="This is a media-event signal.",
+                ),
+            },
         ),
         generated_at,
     )
 
     assert point["ai_status"] == "ready"
     assert point["ai_main_event"] == "战场袭击升级"
+    assert point["ai_i18n"]["en"]["main_event"] == "Battlefield strikes intensified"  # type: ignore[index]
     assert point["ai_generated_at"] == generated_at.isoformat()
     report = point["reports"][0]  # type: ignore[index]
     assert report["chinese_title"] == "俄方打击基辅附近目标"

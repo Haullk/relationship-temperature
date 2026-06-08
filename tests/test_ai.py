@@ -8,6 +8,7 @@ import pytest
 
 from relationship_temperature.ai import (
     AiExplanationInput,
+    AiLocalizedExplanation,
     AiReportInput,
     AiReportSummary,
     DeepSeekClient,
@@ -50,6 +51,7 @@ def test_build_deepseek_payload_uses_json_output_and_disabled_thinking() -> None
     assert payload["response_format"] == {"type": "json_object"}
     assert payload["thinking"] == {"type": "disabled"}
     assert "俄罗斯-乌克兰" in payload["messages"][1]["content"]
+    assert "ai_i18n" in payload["messages"][1]["content"]
 
 
 def test_parse_ai_explanation_requires_json_fields() -> None:
@@ -80,6 +82,42 @@ def test_parse_ai_explanation_requires_json_fields() -> None:
             summary="报道提到俄方打击与复活节停火希望。",
         ),
     )
+
+
+def test_parse_ai_explanation_accepts_multilingual_payload() -> None:
+    parsed = parse_ai_explanation(
+        json.dumps(
+            {
+                "main_event": "战场袭击升级",
+                "summary": "俄乌关系指数下降，相关报道集中在袭击和战斗事件。",
+                "evidence": ["2026-04-03：报道提到 Kyiv region strikes"],
+                "report_summaries": [],
+                "caveat": "这是媒体事件信号。",
+                "ai_i18n": {
+                    "en": {
+                        "main_event": "Battle reports intensified",
+                        "summary": "The relationship index fell as reports focused on fighting and strikes.",
+                        "evidence": ["2026-04-03: example.com reported strikes near Kyiv."],
+                        "caveat": "This is a media-event signal.",
+                    },
+                    "ja": {
+                        "main_event": "戦闘報道が増加",
+                        "summary": "戦闘と攻撃に関する報道が集中し、関係指数は低下しました。",
+                        "evidence": ["2026-04-03：example.com はキーウ近郊への攻撃を報じました。"],
+                        "caveat": "これはメディア上のイベント信号です。",
+                    },
+                },
+            }
+        )
+    )
+
+    assert parsed.ai_i18n["en"] == AiLocalizedExplanation(
+        main_event="Battle reports intensified",
+        summary="The relationship index fell as reports focused on fighting and strikes.",
+        evidence=("2026-04-03: example.com reported strikes near Kyiv.",),
+        caveat="This is a media-event signal.",
+    )
+    assert parsed.ai_i18n["ja"].main_event == "戦闘報道が増加"
 
 
 def test_parse_ai_explanation_rejects_invalid_json() -> None:

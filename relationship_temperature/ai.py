@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import date as Date
 from typing import Any, cast
 from urllib.error import HTTPError, URLError
@@ -52,12 +52,21 @@ class AiReportSummary:
 
 
 @dataclass(frozen=True)
+class AiLocalizedExplanation:
+    main_event: str
+    summary: str
+    evidence: tuple[str, ...]
+    caveat: str = ""
+
+
+@dataclass(frozen=True)
 class AiExplanation:
     main_event: str
     summary: str
     evidence: tuple[str, ...]
     caveat: str
     report_summaries: tuple[AiReportSummary, ...] = ()
+    ai_i18n: dict[str, AiLocalizedExplanation] = field(default_factory=dict)
 
     def to_payload(self) -> dict[str, Any]:
         return asdict(self)
@@ -111,7 +120,7 @@ def build_deepseek_payload(prompt_input: AiExplanationInput, model: str) -> dict
                 "role": "user",
                 "content": json.dumps(
                     {
-                        "task": "生成双边关系趋势段的中文解释",
+                        "task": "生成双边关系趋势段解释，并同步生成多语言版本",
                         "output_schema": {
                             "main_event": "一句话概括最可能的主线事件，不超过 32 个中文字符",
                             "summary": "2-3 句中文摘要，说明关系指数为何变化，必须使用谨慎措辞",
@@ -127,6 +136,32 @@ def build_deepseek_payload(prompt_input: AiExplanationInput, model: str) -> dict
                                 "也要基于来源域名、日期和事件类型给出中文报道线索，不得新增输入外事实"
                             ),
                             "caveat": "一句限制说明，强调这是媒体事件信号",
+                            "ai_i18n": {
+                                "en": {
+                                    "main_event": "One concise English main thread, no more than 18 words",
+                                    "summary": "2-3 English sentences explaining the relationship-index change cautiously",
+                                    "evidence": "English evidence array, same length and order as input.reports, each item starts with YYYY-MM-DD:",
+                                    "caveat": "One English caveat that this is a media-event signal",
+                                },
+                                "ja": {
+                                    "main_event": "日本語の主線を一文で簡潔に書く",
+                                    "summary": "関係指数の変化を慎重に説明する日本語 2-3 文",
+                                    "evidence": "日本語の根拠配列。input.reports と同じ長さと順序。各項目は YYYY-MM-DD：で始める",
+                                    "caveat": "これはメディア上のイベント信号であることを示す日本語の注意書き",
+                                },
+                                "ko": {
+                                    "main_event": "한국어 핵심 흐름을 한 문장으로 간결하게 작성",
+                                    "summary": "관계 지수 변화를 신중하게 설명하는 한국어 2-3문장",
+                                    "evidence": "한국어 근거 배열. input.reports와 같은 길이와 순서. 각 항목은 YYYY-MM-DD:로 시작",
+                                    "caveat": "이것이 언론 이벤트 신호임을 밝히는 한국어 주의 문구",
+                                },
+                                "zh-TW": {
+                                    "main_event": "繁體中文主線，一句話簡潔概括",
+                                    "summary": "繁體中文 2-3 句摘要，謹慎說明關係指數變化",
+                                    "evidence": "繁體中文證據陣列，長度和順序與 input.reports 一致，每項以 YYYY-MM-DD：開頭",
+                                    "caveat": "一句繁體中文限制說明，強調這是媒體事件信號",
+                                },
+                            },
                         },
                         "input": _json_ready(asdict(prompt_input)),
                     },
@@ -197,6 +232,7 @@ def parse_ai_explanation(content: str) -> AiExplanation:
         evidence=evidence,
         caveat=caveat,
         report_summaries=parse_report_summaries(raw.get("report_summaries")),
+        ai_i18n=parse_localized_explanations(raw.get("ai_i18n")),
     )
 
 
@@ -232,6 +268,32 @@ def parse_report_summaries(value: Any) -> tuple[AiReportSummary, ...]:
         if source_url and title and summary:
             summaries.append(AiReportSummary(source_url=source_url, title=title, summary=summary))
     return tuple(summaries)
+
+
+def parse_localized_explanations(value: Any) -> dict[str, AiLocalizedExplanation]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("DeepSeek JSON response ai_i18n must be an object when present.")
+
+    localized: dict[str, AiLocalizedExplanation] = {}
+    for locale in ("en", "ja", "ko", "zh-TW"):
+        item = value.get(locale)
+        if not isinstance(item, dict):
+            continue
+        main_event = str(item.get("main_event") or "").strip()
+        summary = str(item.get("summary") or "").strip()
+        caveat = str(item.get("caveat") or "").strip()
+        evidence_value = item.get("evidence")
+        evidence = tuple(str(line).strip() for line in evidence_value if str(line).strip()) if isinstance(evidence_value, list) else ()
+        if main_event and summary:
+            localized[locale] = AiLocalizedExplanation(
+                main_event=main_event,
+                summary=summary,
+                evidence=evidence,
+                caveat=caveat,
+            )
+    return localized
 
 
 def _required_text(raw: dict[str, Any], key: str) -> str:

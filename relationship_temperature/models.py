@@ -104,6 +104,14 @@ class KeyReport:
 
 
 @dataclass(frozen=True)
+class AiLocalizedExplanation:
+    main_event: str
+    summary: str
+    evidence: tuple[str, ...]
+    caveat: str = ""
+
+
+@dataclass(frozen=True)
 class TurningPoint:
     date: Date
     previous_date: Date
@@ -122,6 +130,7 @@ class TurningPoint:
     ai_summary: str | None = None
     ai_main_event: str | None = None
     ai_evidence: tuple[str, ...] = ()
+    ai_i18n: dict[str, AiLocalizedExplanation] | None = None
     ai_generated_at: DateTime | None = None
     ai_prompt_version: str | None = None
 

@@ -14,6 +14,7 @@ from relationship_temperature.ai import (
     DEFAULT_DEEPSEEK_MODEL,
     AiExplanation,
     AiExplanationInput,
+    AiLocalizedExplanation,
     AiReportInput,
     AiReportSummary,
     DeepSeekClient,
@@ -30,7 +31,7 @@ from relationship_temperature.metadata import (
 
 MAX_SHORT_SUMMARY_LENGTH = 96
 MAX_ERROR_MESSAGE_LENGTH = 200
-AI_PROMPT_VERSION = "report-cn-v4"
+AI_PROMPT_VERSION = "report-i18n-v1"
 METADATA_FETCH_WORKERS = 4
 MAX_ENRICHMENT_RETRIES = 3
 BAD_SOURCE_TITLES = {
@@ -314,6 +315,7 @@ def apply_ai_cache_to_turning_point(turning_point: dict[str, Any], cached: AiCac
                 for item in cached.ai_payload.get("report_summaries", [])
                 if isinstance(item, dict)
             ),
+            ai_i18n=parse_cached_ai_i18n(cached.ai_payload.get("ai_i18n")),
         )
         apply_ai_to_turning_point(turning_point, explanation, cached.generated_at)
         return
@@ -335,9 +337,40 @@ def apply_ai_to_turning_point(
     turning_point["ai_summary"] = explanation.summary
     turning_point["ai_main_event"] = explanation.main_event
     turning_point["ai_evidence"] = list(explanation.evidence)
+    turning_point["ai_i18n"] = {
+        locale: {
+            "main_event": localized.main_event,
+            "summary": localized.summary,
+            "evidence": list(localized.evidence),
+            "caveat": localized.caveat,
+        }
+        for locale, localized in explanation.ai_i18n.items()
+    }
     turning_point["ai_generated_at"] = generated_at.isoformat() if generated_at else None
     turning_point["ai_prompt_version"] = AI_PROMPT_VERSION
     apply_report_summaries(turning_point, explanation.report_summaries)
+
+
+def parse_cached_ai_i18n(value: Any) -> dict[str, AiLocalizedExplanation]:
+    if not isinstance(value, dict):
+        return {}
+    localized: dict[str, AiLocalizedExplanation] = {}
+    for locale, item in value.items():
+        if locale not in {"en", "ja", "ko", "zh-TW"} or not isinstance(item, dict):
+            continue
+        main_event = str(item.get("main_event") or "").strip()
+        summary = str(item.get("summary") or "").strip()
+        evidence_value = item.get("evidence")
+        evidence = tuple(str(line).strip() for line in evidence_value if str(line).strip()) if isinstance(evidence_value, list) else ()
+        caveat = str(item.get("caveat") or "").strip()
+        if main_event and summary:
+            localized[locale] = AiLocalizedExplanation(
+                main_event=main_event,
+                summary=summary,
+                evidence=evidence,
+                caveat=caveat,
+            )
+    return localized
 
 
 def apply_report_summaries(

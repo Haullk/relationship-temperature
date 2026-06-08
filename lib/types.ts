@@ -6,6 +6,14 @@ export type ChangeStatus = "改善" | "恶化" | "平稳";
 export type TurningPointStatus = "normal" | "data_insufficient" | "no_significant_turning_points" | "no_data";
 export type AiStatus = "not_requested" | "pending" | "ready" | "error" | "missing_key";
 export type MetadataStatus = "missing" | "ready" | "unsupported_url" | "fetch_error" | "parse_error";
+export type AiI18nLocale = "en" | "ja" | "zh-TW" | "ko";
+
+export interface LocalizedAiExplanation {
+  main_event?: string | null;
+  summary?: string | null;
+  evidence?: string[];
+  caveat?: string | null;
+}
 
 export interface CandidateObject {
   id: string;
@@ -85,6 +93,7 @@ export interface TurningPoint {
   ai_summary?: string | null;
   ai_main_event?: string | null;
   ai_evidence?: string[];
+  ai_i18n?: Partial<Record<AiI18nLocale, LocalizedAiExplanation>> | null;
   ai_generated_at?: string | null;
   ai_prompt_version?: string | null;
 }

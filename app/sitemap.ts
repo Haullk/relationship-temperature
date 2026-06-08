@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 
 import { readManyRelationshipCaches } from "@/lib/cache";
 import { loadCandidatePool } from "@/lib/candidatePool";
-import { pairCanonicalUrl, siteUrl } from "@/lib/pairSeo";
+import { localizedUrl, routedLocales, siteUrl, type Locale } from "@/lib/i18n";
+import { localizedPairCanonicalUrl, pairCanonicalUrl } from "@/lib/pairSeo";
 import type { RelationshipPayload } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,15 +16,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const relationshipDates = featuredPairIds.map((pairId) => relationshipLastModified(cache.get(pairId), fallbackDate));
   const homeLastModified = latestDate(relationshipDates) ?? fallbackDate;
 
+  const localizedHomeEntries = routedLocales.map((locale) => ({
+    url: localizedUrl(locale, "/"),
+    lastModified: homeLastModified
+  }));
+  const defaultPairEntries = featuredPairIds.map((pairId) => ({
+    url: pairCanonicalUrl(pairId),
+    lastModified: relationshipLastModified(cache.get(pairId), fallbackDate)
+  }));
+  const localizedPairEntries = routedLocales.flatMap((locale) =>
+    featuredPairIds.map((pairId) => ({
+      url: localizedPairCanonicalUrl(pairId, locale as Locale),
+      lastModified: relationshipLastModified(cache.get(pairId), fallbackDate)
+    }))
+  );
+
   return [
     {
       url: siteUrl,
       lastModified: homeLastModified
     },
-    ...featuredPairIds.map((pairId) => ({
-      url: pairCanonicalUrl(pairId),
-      lastModified: relationshipLastModified(cache.get(pairId), fallbackDate)
-    }))
+    ...localizedHomeEntries,
+    ...defaultPairEntries,
+    ...localizedPairEntries
   ];
 }
 

@@ -1,31 +1,33 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import TrendDashboard from "@/components/TrendDashboard";
 import { readRelationshipCache } from "@/lib/cache";
 import { loadCandidatePool } from "@/lib/candidatePool";
-import { defaultLocale, languageAlternates, localeMeta } from "@/lib/i18n";
+import { defaultLocale, languageAlternates, localeFromSegment, localeMeta, type Locale } from "@/lib/i18n";
 import { buildPairJsonLd } from "@/lib/pairJsonLd";
 import { buildPairSeoSummary, pairCanonicalPath, pairIdFromSlug } from "@/lib/pairSeo";
 import type { RelationshipPayload } from "@/lib/types";
 
-type BilateralPageProps = {
-  params: Promise<{ slug: string }>;
+type LocalizedBilateralPageProps = {
+  params: Promise<{ locale: string; slug: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: BilateralPageProps): Promise<Metadata> {
-  const pairId = validPairIdFromSlug((await params).slug);
-  if (pairId === null) {
+export async function generateMetadata({ params }: LocalizedBilateralPageProps): Promise<Metadata> {
+  const { locale: localeSegment, slug } = await params;
+  const locale = localeFromSegment(localeSegment);
+  const pairId = validPairIdFromSlug(slug);
+  if (locale === null || pairId === null) {
     return {
-      title: "关系组合不存在 | GeoPrizm",
+      title: "Relationship pair not found | GeoPrizm",
       robots: { index: false, follow: true }
     };
   }
 
   const relationship = await readRelationshipPayload(pairId);
-  const summary = buildPairSeoSummary(pairId, relationship, defaultLocale);
+  const summary = buildPairSeoSummary(pairId, relationship, locale);
 
   return {
     title: summary.title,
@@ -39,14 +41,14 @@ export async function generateMetadata({ params }: BilateralPageProps): Promise<
       description: summary.description,
       url: summary.canonicalUrl,
       siteName: "GeoPrizm",
-      locale: localeMeta[defaultLocale].openGraphLocale,
+      locale: localeMeta[locale].openGraphLocale,
       type: "website",
       images: [
         {
           url: "/social-preview.png",
           width: 1280,
           height: 640,
-          alt: `${summary.localizedName}关系指数`
+          alt: `${summary.localizedName} Relations Index`
         }
       ]
     },
@@ -59,23 +61,36 @@ export async function generateMetadata({ params }: BilateralPageProps): Promise<
   };
 }
 
-export default async function BilateralPage({ params }: BilateralPageProps) {
-  const pairId = validPairIdFromSlug((await params).slug);
+export default async function LocalizedBilateralPage({ params }: LocalizedBilateralPageProps) {
+  const { locale: localeSegment, slug } = await params;
+  const locale = resolveContentLocale(localeSegment);
+  const pairId = validPairIdFromSlug(slug);
   if (pairId === null) {
     notFound();
   }
+  if (locale === defaultLocale) {
+    redirect(pairCanonicalPath(pairId));
+  }
 
   const relationship = await readRelationshipPayload(pairId);
-  const summary = buildPairSeoSummary(pairId, relationship, defaultLocale);
+  const summary = buildPairSeoSummary(pairId, relationship, locale);
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(buildPairJsonLd(summary, relationship)) }}
       />
-      <TrendDashboard initialPair={pairId} initialSeoSummary={summary} locale={defaultLocale} />
+      <TrendDashboard initialPair={pairId} initialSeoSummary={summary} locale={locale} />
     </>
   );
+}
+
+function resolveContentLocale(segment: string): Locale {
+  const locale = localeFromSegment(segment);
+  if (locale === null) {
+    notFound();
+  }
+  return locale;
 }
 
 function validPairIdFromSlug(slug: string): string | null {
