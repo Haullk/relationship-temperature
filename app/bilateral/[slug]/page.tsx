@@ -154,6 +154,13 @@ function buildPairJsonLd(summary: ReturnType<typeof buildPairSeoSummary>, relati
         creator: {
           "@id": "https://www.geoprizm.com/#organization"
         },
+        license: "http://www.gdeltproject.org/about.html#termsofuse",
+        isBasedOn: {
+          "@type": "Dataset",
+          name: "GDELT 2.0 Event Database",
+          url: "https://www.gdeltproject.org/",
+          license: "http://www.gdeltproject.org/about.html#termsofuse"
+        },
         dateModified,
         temporalCoverage,
         measurementTechnique: "GDELT 2.0 CAMEO event data with weighted Goldstein scores and 14-day rolling averages",
