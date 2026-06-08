@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { appendVary, isCrawler, localeFromLanguageTag, preferredLocaleFromAcceptLanguage } from "../middleware";
+import { appendVary, isCrawler, localeFromLanguageTag, preferredLocaleFromAcceptLanguage, publicOriginFromHeaders } from "../middleware";
 
 describe("locale middleware helpers", () => {
   it("maps browser language tags to supported locales", () => {
@@ -27,5 +27,14 @@ describe("locale middleware helpers", () => {
     expect(appendVary(null, "Accept-Language")).toBe("Accept-Language");
     expect(appendVary("RSC, Accept-Language", "Accept-Language")).toBe("RSC, Accept-Language");
     expect(appendVary("RSC", "Accept-Language")).toBe("RSC, Accept-Language");
+  });
+
+  it("uses the public host for locale redirects behind the VPS reverse proxy", () => {
+    const headers = new Headers({
+      host: "www.geoprizm.com",
+      "x-forwarded-proto": "https"
+    });
+
+    expect(publicOriginFromHeaders(headers, new URL("https://localhost:3000/"))).toBe("https://www.geoprizm.com");
   });
 });

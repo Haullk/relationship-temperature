@@ -5,7 +5,7 @@ import { defaultLocale, localeFromPathname, type Locale } from "@/lib/i18n";
 export function middleware(request: NextRequest) {
   const detectedLocale = localeRedirectTarget(request);
   if (detectedLocale !== null) {
-    const redirectUrl = request.nextUrl.clone();
+    const redirectUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, publicOriginFromHeaders(request.headers, request.nextUrl));
     redirectUrl.pathname = `/${detectedLocale}`;
     const response = NextResponse.redirect(redirectUrl);
     response.headers.set("Vary", appendVary(response.headers.get("Vary"), "Accept-Language"));
@@ -106,4 +106,18 @@ export function appendVary(current: string | null, value: string): string {
   }
   const fields = current.split(",").map((field) => field.trim().toLowerCase());
   return fields.includes(value.toLowerCase()) ? current : `${current}, ${value}`;
+}
+
+export function publicOriginFromHeaders(headers: Headers, fallbackUrl: Pick<URL, "host" | "protocol">): string {
+  const host = firstHeaderValue(headers.get("host")) ?? firstHeaderValue(headers.get("x-forwarded-host")) ?? fallbackUrl.host;
+  const protocol = firstHeaderValue(headers.get("x-forwarded-proto")) ?? fallbackUrl.protocol.replace(/:$/, "");
+  return `${protocol}://${host}`;
+}
+
+function firstHeaderValue(value: string | null): string | null {
+  const first = value?.split(",")[0]?.trim();
+  if (!first || /[\s/\\]/.test(first)) {
+    return null;
+  }
+  return first;
 }
