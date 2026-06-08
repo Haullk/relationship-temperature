@@ -32,6 +32,7 @@ from relationship_temperature.metadata import (
 MAX_SHORT_SUMMARY_LENGTH = 96
 MAX_ERROR_MESSAGE_LENGTH = 200
 AI_PROMPT_VERSION = "report-i18n-v1"
+REQUIRED_AI_I18N_LOCALES = ("en", "ja", "ko", "zh-TW")
 METADATA_FETCH_WORKERS = 4
 MAX_ENRICHMENT_RETRIES = 3
 BAD_SOURCE_TITLES = {
@@ -324,8 +325,25 @@ def apply_ai_cache_to_turning_point(turning_point: dict[str, Any], cached: AiCac
 
 def should_use_ai_cache(cached: AiCacheRecord, *, refresh_errors: bool) -> bool:
     if cached.status == "ready":
-        return True
+        return has_required_ai_i18n(cached.ai_payload)
     return not refresh_errors
+
+
+def has_required_ai_i18n(ai_payload: dict[str, Any] | None) -> bool:
+    if not ai_payload:
+        return False
+    ai_i18n = ai_payload.get("ai_i18n")
+    if not isinstance(ai_i18n, dict):
+        return False
+    for locale in REQUIRED_AI_I18N_LOCALES:
+        entry = ai_i18n.get(locale)
+        if not isinstance(entry, dict):
+            return False
+        if not str(entry.get("main_event") or "").strip():
+            return False
+        if not str(entry.get("summary") or "").strip():
+            return False
+    return True
 
 
 def apply_ai_to_turning_point(

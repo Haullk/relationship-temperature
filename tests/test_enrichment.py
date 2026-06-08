@@ -165,10 +165,28 @@ def test_apply_ai_payload_and_cached_error_status() -> None:
 
 def test_cached_error_can_be_retried_when_forced() -> None:
     error_cache = AiCacheRecord(status="error", ai_payload=None, error_message="boom", generated_at=None)
-    ready_cache = AiCacheRecord(status="ready", ai_payload={"summary": "ready"}, error_message=None, generated_at=None)
+    incomplete_ready_cache = AiCacheRecord(
+        status="ready",
+        ai_payload={"summary": "ready"},
+        error_message=None,
+        generated_at=None,
+    )
+    ready_cache = AiCacheRecord(
+        status="ready",
+        ai_payload={
+            "summary": "ready",
+            "ai_i18n": {
+                locale: {"main_event": "Event", "summary": "Summary"}
+                for locale in ("en", "ja", "ko", "zh-TW")
+            },
+        },
+        error_message=None,
+        generated_at=None,
+    )
 
     assert should_use_ai_cache(error_cache, refresh_errors=False)
     assert not should_use_ai_cache(error_cache, refresh_errors=True)
+    assert not should_use_ai_cache(incomplete_ready_cache, refresh_errors=True)
     assert should_use_ai_cache(ready_cache, refresh_errors=True)
 
 
