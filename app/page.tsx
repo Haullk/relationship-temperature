@@ -625,6 +625,8 @@ function RelationshipSeoBrief({ summary }: { summary: PairSeoSummary }) {
         <p className="relationship-brief-kicker">{summary.englishName} Relations Index</p>
         <h2>{summary.chineseName}关系指数</h2>
         <p>{summary.brief}</p>
+        <p>{summary.readingGuide}</p>
+        <p>{summary.methodNote}</p>
       </div>
       <dl className="relationship-brief-facts">
         <div>
@@ -638,6 +640,10 @@ function RelationshipSeoBrief({ summary }: { summary: PairSeoSummary }) {
         <div>
           <dt>更新日期</dt>
           <dd>{summary.dataEnd ?? "等待数据"}</dd>
+        </div>
+        <div>
+          <dt>数据区间</dt>
+          <dd>{summary.dataStart && summary.dataEnd ? `${summary.dataStart} 至 ${summary.dataEnd}` : "近 90 天"}</dd>
         </div>
       </dl>
     </section>

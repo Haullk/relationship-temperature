@@ -1,6 +1,30 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://www.geoprizm.com/#organization",
+      name: "GeoPrizm",
+      url: "https://www.geoprizm.com/",
+      logo: "https://www.geoprizm.com/icon.svg?v=2",
+      sameAs: ["https://github.com/Haullk/relationship-temperature"]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.geoprizm.com/#website",
+      name: "GeoPrizm",
+      url: "https://www.geoprizm.com/",
+      inLanguage: "zh-CN",
+      publisher: {
+        "@id": "https://www.geoprizm.com/#organization"
+      }
+    }
+  ]
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.geoprizm.com"),
   title: "GeoPrizm | 双边关系看板",
@@ -40,7 +64,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

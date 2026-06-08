@@ -810,13 +810,13 @@ h2 {
 
 .relationship-brief-facts {
   display: grid;
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(2, max-content);
   gap: 14px;
   margin: 0;
 }
 
 .relationship-brief-facts div {
-  min-width: 82px;
+  min-width: 112px;
 }
 
 .relationship-brief-facts dt {
@@ -2067,7 +2067,7 @@ h2 {
   }
 
   .relationship-brief-facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 

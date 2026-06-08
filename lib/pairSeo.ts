@@ -30,9 +30,12 @@ export interface PairSeoSummary {
   title: string;
   description: string;
   brief: string;
+  readingGuide: string;
+  methodNote: string;
   currentTemperature: number | null;
   statusLabel: string | null;
   dataEnd: string | null;
+  dataStart: string | null;
   generatedAt: string | null;
 }
 
@@ -91,6 +94,7 @@ export function buildPairSeoSummary(pairId: string, relationship: RelationshipPa
   const chineseName = pairChineseName(canonicalPairId);
   const currentTemperature = relationship?.current_temperature ?? null;
   const statusLabel = relationship?.card_status ?? relationship?.current_band ?? null;
+  const dataStart = relationship?.data_start ?? null;
   const dataEnd = relationship?.data_end ?? null;
   const generatedAt = relationship?.generated_at ?? null;
   const scoreText = currentTemperature === null
@@ -102,6 +106,8 @@ export function buildPairSeoSummary(pairId: string, relationship: RelationshipPa
     ? "当前指数等待缓存数据。"
     : `当前指数为 ${currentTemperature.toFixed(1)}，状态为${statusLabel ?? "观察中"}。`;
   const brief = `${chineseName}关系指数基于 GDELT 全球新闻事件数据每日更新，用来观察双方关系在合作、摩擦和中性区间之间的变化。${chineseScoreText}${dataEnd ? ` 数据更新至 ${dataEnd}。` : ""}`;
+  const readingGuide = `本页聚焦 ${chineseName} 双边关系的公开新闻信号，适合用来查看近期关系温度、趋势方向和主要转折点。指数越高代表报道中的合作信号越强，指数越低代表摩擦或冲突信号更突出。`;
+  const methodNote = `GeoPrizm 将 GDELT 事件数据中的 CAMEO 事件类型、Goldstein 分值和报道热度汇总为每日关系指数，并用 14 天滚动平均降低单日新闻噪声。该指数反映媒体报道结构，不等同于官方外交判断。`;
 
   return {
     pairId: canonicalPairId,
@@ -113,8 +119,11 @@ export function buildPairSeoSummary(pairId: string, relationship: RelationshipPa
     title: `${englishName} Relations Index 2026 | GeoPrizm`,
     description,
     brief,
+    readingGuide,
+    methodNote,
     currentTemperature,
     statusLabel,
+    dataStart,
     dataEnd,
     generatedAt
   };
