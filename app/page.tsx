@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { chartPath, chartPoints, type ChartPoint } from "@/lib/chart";
+import { buildPairSeoSummary, pairCanonicalPath, type PairSeoSummary } from "@/lib/pairSeo";
 import type {
   AiExplanationResponse,
   FeaturedCardPayload,
@@ -42,8 +43,13 @@ const objectFlags: Record<string, string> = {
   ukr: "🇺🇦"
 };
 
-export default function Page() {
-  return <TrendApp />;
+interface TrendPageProps {
+  initialPair?: string;
+  initialSeoSummary?: PairSeoSummary | null;
+}
+
+export default function Page({ initialPair = "chn_usa", initialSeoSummary = null }: TrendPageProps) {
+  return <TrendApp initialPair={initialPair} initialSeoSummary={initialSeoSummary} />;
 }
 
 function indexVisualBand(value: number | null | undefined): "band-cold" | "band-neutral" | "band-hot" {
@@ -91,7 +97,13 @@ function relationshipStatusLabel(value: number | null | undefined): string {
   return "明显偏紧张";
 }
 
-function TrendApp() {
+function TrendApp({
+  initialPair,
+  initialSeoSummary
+}: {
+  initialPair: string;
+  initialSeoSummary: PairSeoSummary | null;
+}) {
   const [data, setData] = useState<TrendApiResponse | null>(null);
   const [selectedPair, setSelectedPair] = useState("chn_usa");
   const [draftObjectA, setDraftObjectA] = useState("chn");
@@ -108,12 +120,14 @@ function TrendApp() {
   const [aiMessage, setAiMessage] = useState<string | null>(null);
   const [headerActionsOpen, setHeaderActionsOpen] = useState(false);
   const [wechatOpen, setWechatOpen] = useState(false);
+  const [canonicalContentMode, setCanonicalContentMode] = useState(initialSeoSummary !== null);
   const explanationRef = useRef<HTMLElement | null>(null);
   const wechatCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const shareResetTimer = useRef<number | null>(null);
   const contentUpdateTimer = useRef<number | null>(null);
   const draftAutoLoadTimer = useRef<number | null>(null);
   const hasLoadedOnce = useRef(false);
+  const initialPairRef = useRef(initialPair);
   const requestedAiKeys = useRef<Set<string>>(new Set());
 
   const markAiPending = useCallback((requestKey: string, pending: boolean) => {
@@ -172,7 +186,7 @@ function TrendApp() {
     void requestAiForTurningPoint(nextRelationship.pair_id, latestPendingPoint.date, { showMessage: false });
   }, [requestAiForTurningPoint]);
 
-  const loadPair = useCallback(async (pair: string, options: { warmAi?: boolean } = {}) => {
+  const loadPair = useCallback(async (pair: string, options: { warmAi?: boolean; updateUrl?: boolean } = {}) => {
     if (draftAutoLoadTimer.current !== null) {
       window.clearTimeout(draftAutoLoadTimer.current);
       draftAutoLoadTimer.current = null;
@@ -196,9 +210,14 @@ function TrendApp() {
       setDraftObjectB(nextObjectB);
       const nextTurningPoints = payload.relationship?.turning_points ?? [];
       setSelectedTurningDate(nextTurningPoints[nextTurningPoints.length - 1]?.date ?? null);
-      const url = new URL(window.location.href);
-      url.searchParams.set("pair", payload.pairId);
-      window.history.replaceState({}, "", url);
+      if (options.updateUrl) {
+        const url = new URL(window.location.href);
+        url.pathname = pairCanonicalPath(payload.pairId);
+        url.search = "";
+        url.hash = "";
+        window.history.replaceState({}, "", url);
+        setCanonicalContentMode(true);
+      }
       if (hasLoadedOnce.current) {
         if (contentUpdateTimer.current !== null) {
           window.clearTimeout(contentUpdateTimer.current);
@@ -220,7 +239,12 @@ function TrendApp() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    void loadPair(params.get("pair") ?? "chn_usa");
+    const pathname = window.location.pathname;
+    const hasLegacyPairParam = params.has("pair");
+    const requestedPair = params.get("pair") ?? initialPairRef.current;
+    void loadPair(requestedPair, {
+      updateUrl: hasLegacyPairParam || pathname.startsWith("/bilateral/") || pathname.startsWith("/trend/")
+    });
   }, [loadPair]);
 
   useEffect(() => () => {
@@ -253,6 +277,10 @@ function TrendApp() {
     [candidates]
   );
   const relationship = data?.relationship ?? null;
+  const seoSummary = useMemo(
+    () => (canonicalContentMode && relationship ? buildPairSeoSummary(relationship.pair_id, relationship) : initialSeoSummary),
+    [canonicalContentMode, initialSeoSummary, relationship]
+  );
   const hasNoData = data?.cacheStatus === "missing" || relationship?.turning_point_status === "no_data";
   const initialLoading = loading && data === null;
   const panelLoading = loading && data !== null;
@@ -319,7 +347,7 @@ function TrendApp() {
     }
     draftAutoLoadTimer.current = window.setTimeout(() => {
       draftAutoLoadTimer.current = null;
-      void loadPair(pair, { warmAi: true });
+      void loadPair(pair, { warmAi: true, updateUrl: true });
     }, 220);
   }
 
@@ -499,7 +527,7 @@ function TrendApp() {
             payload={data?.featuredCards.find((card) => card.pair_id === pair.pairId) ?? null}
             active={pair.pairId === selectedPair}
             candidateLabels={candidateLabels}
-            onClick={() => void loadPair(pair.pairId, { warmAi: true })}
+            onClick={() => void loadPair(pair.pairId, { warmAi: true, updateUrl: true })}
           />
         ))}
       </section>
@@ -510,6 +538,8 @@ function TrendApp() {
       {!loading && relationship?.turning_point_status === "no_significant_turning_points" ? (
         <Notice tone="info" text="近 90 天未检测到明显趋势段。" />
       ) : null}
+
+      {seoSummary ? <RelationshipSeoBrief summary={seoSummary} /> : null}
 
       <section className={`workspace ${contentUpdated ? "content-updated" : ""}`}>
         <RelationshipChart
@@ -585,6 +615,32 @@ function TrendApp() {
         </div>
       </details>
     </main>
+  );
+}
+
+function RelationshipSeoBrief({ summary }: { summary: PairSeoSummary }) {
+  return (
+    <section className="relationship-brief" aria-label={`${summary.chineseName}关系摘要`}>
+      <div className="relationship-brief-copy">
+        <p className="relationship-brief-kicker">{summary.englishName} Relations Index</p>
+        <h2>{summary.chineseName}关系指数</h2>
+        <p>{summary.brief}</p>
+      </div>
+      <dl className="relationship-brief-facts">
+        <div>
+          <dt>当前指数</dt>
+          <dd>{summary.currentTemperature === null ? "--" : summary.currentTemperature.toFixed(1)}</dd>
+        </div>
+        <div>
+          <dt>状态</dt>
+          <dd>{summary.statusLabel ?? "观察中"}</dd>
+        </div>
+        <div>
+          <dt>更新日期</dt>
+          <dd>{summary.dataEnd ?? "等待数据"}</dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 

@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://www.geoprizm.com"),
   title: "GeoPrizm | 双边关系看板",
   description: "基于 GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。",
+  alternates: {
+    canonical: "/"
+  },
   icons: {
     icon: [{ url: "/icon.svg?v=2", type: "image/svg+xml" }],
     shortcut: [{ url: "/icon.svg?v=2", type: "image/svg+xml" }],
