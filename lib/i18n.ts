@@ -232,6 +232,17 @@ const dashboardCopies = {
       cameoLink: "CAMEO 事件编码框架",
       noteSuffix: "。"
     },
+    footer: {
+      aria: "站点导航",
+      product: "GeoPrizm 是一个基于公开新闻事件数据的双边关系指数看板。",
+      home: "首页",
+      about: "关于",
+      methodology: "方法说明",
+      privacy: "隐私政策",
+      contact: "联系方式",
+      disclaimer: "免责声明",
+      github: "GitHub 开源项目"
+    },
     seoBrief: {
       aria: (name: string) => `${name}关系摘要`,
       kicker: (englishName: string) => `${englishName} Relations Index`,
@@ -378,6 +389,17 @@ const dashboardCopies = {
       cameoLink: "the CAMEO event coding framework",
       noteSuffix: "."
     },
+    footer: {
+      aria: "Site navigation",
+      product: "GeoPrizm is a bilateral relations index dashboard built from public news event data.",
+      home: "Home",
+      about: "About",
+      methodology: "Methodology",
+      privacy: "Privacy",
+      contact: "Contact",
+      disclaimer: "Disclaimer",
+      github: "Open source on GitHub"
+    },
     seoBrief: {
       aria: (name: string) => `${name} relations summary`,
       kicker: (englishName: string) => `${englishName} Relations Index`,
@@ -517,6 +539,17 @@ const dashboardCopies = {
       cameoLink: "CAMEO イベントコード体系",
       noteSuffix: "を参照しています。"
     },
+    footer: {
+      aria: "サイトナビゲーション",
+      product: "GeoPrizm は公開ニュースイベントデータをもとにした二国間関係指数ダッシュボードです。",
+      home: "ホーム",
+      about: "概要",
+      methodology: "方法",
+      privacy: "プライバシー",
+      contact: "連絡先",
+      disclaimer: "免責事項",
+      github: "GitHub オープンソース"
+    },
     seoBrief: {
       aria: (name: string) => `${name}関係サマリー`,
       kicker: (englishName: string) => `${englishName} Relations Index`,
@@ -655,6 +688,17 @@ const dashboardCopies = {
       and: "與",
       cameoLink: "CAMEO 事件編碼框架",
       noteSuffix: "。"
+    },
+    footer: {
+      aria: "站點導覽",
+      product: "GeoPrizm 是基於公開新聞事件資料的雙邊關係指數看板。",
+      home: "首頁",
+      about: "關於",
+      methodology: "方法說明",
+      privacy: "隱私政策",
+      contact: "聯絡方式",
+      disclaimer: "免責聲明",
+      github: "GitHub 開源專案"
     },
     seoBrief: {
       aria: (name: string) => `${name}關係摘要`,
@@ -801,6 +845,17 @@ const dashboardCopies = {
       and: "및",
       cameoLink: "CAMEO 이벤트 코딩 프레임워크",
       noteSuffix: "를 참고합니다."
+    },
+    footer: {
+      aria: "사이트 탐색",
+      product: "GeoPrizm은 공개 뉴스 이벤트 데이터를 기반으로 한 양자 관계 지수 대시보드입니다.",
+      home: "홈",
+      about: "소개",
+      methodology: "방법론",
+      privacy: "개인정보처리방침",
+      contact: "연락처",
+      disclaimer: "면책 조항",
+      github: "GitHub 오픈소스"
     },
     seoBrief: {
       aria: (name: string) => `${name} 관계 요약`,

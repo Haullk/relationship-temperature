@@ -15,6 +15,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const fallbackDate = new Date();
   const relationshipDates = featuredPairIds.map((pairId) => relationshipLastModified(cache.get(pairId), fallbackDate));
   const homeLastModified = latestDate(relationshipDates) ?? fallbackDate;
+  const staticPageEntries = ["/about", "/methodology", "/privacy", "/contact", "/disclaimer"].map((path) => ({
+    url: new URL(path, siteUrl).toString(),
+    lastModified: fallbackDate
+  }));
 
   const localizedHomeEntries = routedLocales.map((locale) => ({
     url: localizedUrl(locale, "/"),
@@ -36,6 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: siteUrl,
       lastModified: homeLastModified
     },
+    ...staticPageEntries,
     ...localizedHomeEntries,
     ...defaultPairEntries,
     ...localizedPairEntries

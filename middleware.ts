@@ -97,7 +97,7 @@ export function localeFromLanguageTag(language: string): Locale | null {
 }
 
 export function isCrawler(userAgent: string | null): boolean {
-  return /bot|crawler|spider|crawling|googlebot|bingbot|duckduckbot|baiduspider|yandexbot|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp/i.test(userAgent ?? "");
+  return /bot|crawler|spider|crawling|googlebot|google-inspectiontool|mediapartners-google|google-display-ads-bot|adsbot-google|bingbot|duckduckbot|baiduspider|yandexbot|slurp|facebookexternalhit|twitterbot|linkedinbot|whatsapp/i.test(userAgent ?? "");
 }
 
 export function appendVary(current: string | null, value: string): string {

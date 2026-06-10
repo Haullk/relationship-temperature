@@ -661,6 +661,7 @@ function TrendApp({
       </section>
 
       <details
+        id="methodology"
         className="method-box"
         open={methodOpen}
         onToggle={(event) => setMethodOpen(event.currentTarget.open)}
@@ -680,7 +681,7 @@ function TrendApp({
             <h3>{copy.method.noteTitle}</h3>
             <p>
               {copy.method.notePrefix}{" "}
-              <a href="https://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf" target="_blank" rel="noreferrer">
+              <a href="http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf" target="_blank" rel="noreferrer">
                 GDELT 2.0
               </a>
               {" "}{copy.method.and}{" "}
@@ -692,7 +693,33 @@ function TrendApp({
           </section>
         </div>
       </details>
+      <SiteFooter copy={copy} />
     </main>
+  );
+}
+
+function SiteFooter({ copy }: { copy: DashboardCopy }) {
+  const links = [
+    { href: "/", label: copy.footer.home },
+    { href: "/about", label: copy.footer.about },
+    { href: "/methodology", label: copy.footer.methodology },
+    { href: "/privacy", label: copy.footer.privacy },
+    { href: "/contact", label: copy.footer.contact },
+    { href: "/disclaimer", label: copy.footer.disclaimer },
+    { href: "https://github.com/Haullk/relationship-temperature", label: copy.footer.github, external: true }
+  ];
+
+  return (
+    <footer className="site-footer" aria-label={copy.footer.aria}>
+      <p>{copy.footer.product}</p>
+      <nav className="site-footer-links" aria-label={copy.footer.aria}>
+        {links.map((link) => (
+          <a key={link.href} href={link.href} target={link.external ? "_blank" : undefined} rel={link.external ? "noreferrer" : undefined}>
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    </footer>
   );
 }
 
