@@ -15,6 +15,7 @@ GeoPrizm 是一个面向普通读者的国际关系趋势看板。它基于 GDEL
 快速入口：
 
 - 在线看板：[www.geoprizm.com](https://www.geoprizm.com)
+- 开发者文档：[GitHub Pages](https://haullk.github.io/relationship-temperature/)
 - 参与贡献：[CONTRIBUTING.md](CONTRIBUTING.md)
 - 更新记录：[CHANGELOG.md](CHANGELOG.md)
 - 开源协议：[MIT License](LICENSE)

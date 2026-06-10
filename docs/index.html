@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GeoPrizm Developer Docs</title>
+    <meta
+      name="description"
+      content="Developer documentation for GeoPrizm: data pipeline, current internal APIs, local setup, deployment, and contribution notes."
+    />
+    <meta property="og:title" content="GeoPrizm Developer Docs" />
+    <meta
+      property="og:description"
+      content="API notes, data pipeline docs, deployment workflow, and contribution guide for GeoPrizm."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://haullk.github.io/relationship-temperature/" />
+    <meta property="og:image" content="https://www.geoprizm.com/social-preview.png" />
+    <link rel="canonical" href="https://haullk.github.io/relationship-temperature/" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="GeoPrizm developer docs home">
+          <span class="brand-mark" aria-hidden="true"><span class="brand-dot"></span></span>
+          <span>GeoPrizm Docs</span>
+        </a>
+        <div class="nav-links">
+          <a href="#architecture">Architecture</a>
+          <a href="#api">API</a>
+          <a href="#local-dev">Local setup</a>
+          <a href="#contribute">Contribute</a>
+          <a href="https://www.geoprizm.com/en">Live app</a>
+          <a href="https://github.com/Haullk/relationship-temperature">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-inner">
+          <div>
+            <p class="eyebrow">Developer documentation</p>
+            <h1>Global news signals, documented for builders.</h1>
+            <p class="hero-copy">
+              GeoPrizm converts GDELT/CAMEO news events into bilateral relationship indexes, trend
+              segments, and evidence-backed explanations. These docs explain how the system works
+              and how developers can run, inspect, and improve it.
+            </p>
+            <div class="actions">
+              <a class="button primary" href="https://www.geoprizm.com/en">Open dashboard</a>
+              <a class="button" href="https://github.com/Haullk/relationship-temperature">View source</a>
+              <a class="button" href="#api">Read API notes</a>
+            </div>
+          </div>
+          <figure class="product-shot">
+            <img
+              src="https://www.geoprizm.com/social-preview.png"
+              alt="GeoPrizm dashboard preview with bilateral relationship cards and a trend chart"
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section class="section" id="overview">
+        <h2>What This Site Is For</h2>
+        <p class="lede">
+          This GitHub Pages site is not a marketing landing page. It is the public technical
+          reference for GeoPrizm: how data enters the system, how relationship indexes are cached,
+          what the current endpoints return, and where stable API documentation will live.
+        </p>
+        <div class="grid three">
+          <article class="card">
+            <h3>Method transparency</h3>
+            <p>
+              The relationship index reflects media event signals, not an official diplomatic
+              position or a prediction model.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Developer onboarding</h3>
+            <p>
+              Setup notes, commands, and data refresh steps help contributors run the project
+              locally without reading the whole codebase first.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Future API home</h3>
+            <p>
+              Once a stable public API is released, this site will host endpoint reference, schemas,
+              examples, limits, and changelog.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="architecture">
+        <h2>Architecture</h2>
+        <p class="lede">
+          GeoPrizm is split into a Python data pipeline, PostgreSQL relationship cache, and a
+          Next.js application that serves both the dashboard and internal JSON endpoints.
+        </p>
+        <div class="flow" aria-label="GeoPrizm data flow">
+          <div class="flow-step">
+            <strong>1. GDELT events</strong>
+            <span>Fetch or read GDELT 2.0 event exports for candidate country pairs.</span>
+          </div>
+          <div class="flow-step">
+            <strong>2. Normalize</strong>
+            <span>Filter actors, map country objects, and store compatible event rows.</span>
+          </div>
+          <div class="flow-step">
+            <strong>3. Score</strong>
+            <span>Aggregate GoldsteinScale cooperation/conflict signals into daily indexes.</span>
+          </div>
+          <div class="flow-step">
+            <strong>4. Detect shifts</strong>
+            <span>Find visible relationship changes and select supporting report signals.</span>
+          </div>
+          <div class="flow-step">
+            <strong>5. Enrich</strong>
+            <span>Generate AI-assisted explanations from structured signals and metadata.</span>
+          </div>
+          <div class="flow-step">
+            <strong>6. Serve</strong>
+            <span>Read precomputed cache from Next.js UI and JSON endpoints.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="api">
+        <h2>Current API Notes</h2>
+        <p class="lede">
+          The endpoints below are used by the current web app. Treat them as internal, experimental
+          APIs until a versioned public API is added.
+        </p>
+        <div class="grid two">
+          <article class="api-block">
+            <div class="api-heading">
+              <span>Trend payload</span>
+              <span class="method">GET</span>
+            </div>
+            <pre><code>GET /api/trend?pair=china_united_states
+
+Response shape:
+{
+  "requestedPair": "china_united_states",
+  "pairId": "china_united_states",
+  "pairStatus": "valid",
+  "cacheStatus": "fresh",
+  "candidatePool": {
+    "objects": [],
+    "featuredPairs": [],
+    "defaultPair": "china_united_states",
+    "legalPairIds": []
+  },
+  "featuredCards": [],
+  "relationship": {
+    "pair_id": "china_united_states",
+    "display_name": "中国 / 美国",
+    "current_temperature": 62.3,
+    "trend": [],
+    "turning_points": []
+  }
+}</code></pre>
+          </article>
+          <article class="api-block">
+            <div class="api-heading">
+              <span>AI explanation refresh</span>
+              <span class="method">POST</span>
+            </div>
+            <pre><code>POST /api/ai/explanation
+Content-Type: application/json
+
+{
+  "pairId": "russia_ukraine",
+  "turningPointDate": "2026-05-16",
+  "force": false
+}
+
+Response shape:
+{
+  "status": "ready",
+  "message": null,
+  "turningPoint": {
+    "date": "2026-05-16",
+    "direction": "恶化",
+    "ai_main_event": "...",
+    "ai_evidence": []
+  }
+}</code></pre>
+          </article>
+        </div>
+        <div class="note">
+          Planned stable API docs will include OpenAPI schemas, response examples, rate limits,
+          cache semantics, and a public changelog before these endpoints are promoted as a contract.
+        </div>
+      </section>
+
+      <section class="section" id="local-dev">
+        <h2>Local Development</h2>
+        <p class="lede">
+          The project combines Node.js for the web application and Python for data processing.
+          Secrets belong in <code>.env.local</code> and should never be committed.
+        </p>
+        <div class="grid two">
+          <article class="api-block">
+            <div class="api-heading">
+              <span>Install and run</span>
+            </div>
+            <pre><code>npm install
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+cp .env.example .env.local
+
+npm run dev -- -p 3001</code></pre>
+          </article>
+          <article class="api-block">
+            <div class="api-heading">
+              <span>Quality checks</span>
+            </div>
+            <pre><code>npm run typecheck
+npm run lint
+npm test
+npm run build
+
+.venv/bin/python -m pytest
+.venv/bin/python -m mypy relationship_temperature tests
+.venv/bin/python -m ruff check relationship_temperature tests</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="data">
+        <h2>Data Refresh</h2>
+        <p class="lede">
+          Relationship products are precomputed before the dashboard reads them. This keeps the web
+          app fast and makes trend cards, charts, turning points, and explanations reproducible.
+        </p>
+        <div class="api-block">
+          <div class="api-heading">
+            <span>Standalone GDELT import and cache refresh</span>
+          </div>
+          <pre><code>.venv/bin/python -m relationship_temperature.gdelt_importer \
+  --date 2026-06-02 \
+  --wait-for-files \
+  --precompute \
+  --with-ai \
+  --prune-days 120</code></pre>
+        </div>
+      </section>
+
+      <section class="section" id="contribute">
+        <h2>Contribute</h2>
+        <p class="lede">
+          Useful contributions include data quality reports, new country-pair requests, chart and
+          accessibility improvements, deployment docs, tests, and clearer method explanations.
+        </p>
+        <div class="grid three">
+          <article class="card">
+            <h3>Report data questions</h3>
+            <p>
+              Include the relationship pair, date range, screenshots, and related news links when
+              reporting index or evidence issues.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Improve the interface</h3>
+            <p>
+              The dashboard should stay readable for non-experts while preserving the underlying
+              evidence and caveats.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Extend docs</h3>
+            <p>
+              Add API examples, deployment notes, data import recipes, or method explanations as the
+              project grows.
+            </p>
+          </article>
+        </div>
+        <ul class="list">
+          <li><a href="https://github.com/Haullk/relationship-temperature/blob/main/CONTRIBUTING.md">Read CONTRIBUTING.md</a></li>
+          <li><a href="https://github.com/Haullk/relationship-temperature/issues/new/choose">Open an issue</a></li>
+          <li><a href="https://github.com/Haullk/relationship-temperature/blob/main/SECURITY.md">Security policy</a></li>
+        </ul>
+      </section>
+
+      <section class="section" id="roadmap">
+        <h2>Documentation Roadmap</h2>
+        <div class="grid two">
+          <article class="card">
+            <h3>Before stable API</h3>
+            <p>
+              Keep this page focused on setup, architecture, internal endpoint notes, and transparent
+              data-method boundaries.
+            </p>
+          </article>
+          <article class="card">
+            <h3>After stable API</h3>
+            <p>
+              Add OpenAPI docs, versioning policy, examples in JavaScript and Python, data export
+              formats, rate limits, and breaking-change notices.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>GeoPrizm Developer Docs</span>
+        <span>
+          <a href="https://www.geoprizm.com/en">Live dashboard</a> ·
+          <a href="https://github.com/Haullk/relationship-temperature">GitHub repository</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>
+
