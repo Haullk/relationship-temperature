@@ -84,6 +84,23 @@ export function pairIdFromSlug(slug: string): string | null {
   return null;
 }
 
+export function pairIdFromAnySlug(slug: string): string | null {
+  const normalizedSlug = slug.trim().toLowerCase();
+  const entries = Object.entries(objectSeoProfiles);
+  for (const [leftId, leftProfile] of entries) {
+    for (const [rightId, rightProfile] of entries) {
+      if (leftId === rightId) {
+        continue;
+      }
+      const candidateSlug = [leftProfile.slug, rightProfile.slug].join("-");
+      if (candidateSlug === normalizedSlug) {
+        return [leftId, rightId].sort().join("_");
+      }
+    }
+  }
+  return null;
+}
+
 export function pairSlug(pairId: string): string {
   const [left, right] = splitKnownPairId(pairId);
   return [objectSeoProfiles[left].slug, objectSeoProfiles[right].slug].join("-");

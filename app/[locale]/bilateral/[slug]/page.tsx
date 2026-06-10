@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import TrendDashboard from "@/components/TrendDashboard";
 import { readRelationshipCache } from "@/lib/cache";
 import { loadCandidatePool } from "@/lib/candidatePool";
 import { defaultLocale, languageAlternates, localeFromSegment, localeMeta, type Locale } from "@/lib/i18n";
 import { buildPairJsonLd } from "@/lib/pairJsonLd";
-import { buildPairSeoSummary, pairCanonicalPath, pairIdFromSlug } from "@/lib/pairSeo";
+import {
+  buildPairSeoSummary,
+  localizedPairCanonicalPath,
+  pairCanonicalPath,
+  pairIdFromAnySlug,
+  pairSlug
+} from "@/lib/pairSeo";
 import type { RelationshipPayload } from "@/lib/types";
 
 type LocalizedBilateralPageProps = {
@@ -68,8 +74,8 @@ export default async function LocalizedBilateralPage({ params }: LocalizedBilate
   if (pairId === null) {
     notFound();
   }
-  if (locale === defaultLocale) {
-    redirect(pairCanonicalPath(pairId));
+  if (locale === defaultLocale || pairSlug(pairId) !== slug.trim().toLowerCase()) {
+    permanentRedirect(localizedPairCanonicalPath(pairId, locale));
   }
 
   const relationship = await readRelationshipPayload(pairId);
@@ -94,7 +100,7 @@ function resolveContentLocale(segment: string): Locale {
 }
 
 function validPairIdFromSlug(slug: string): string | null {
-  const pairId = pairIdFromSlug(slug);
+  const pairId = pairIdFromAnySlug(slug);
   if (pairId === null) {
     return null;
   }

@@ -4,6 +4,7 @@ import {
   buildPairSeoSummary,
   normalizeKnownPairId,
   pairCanonicalPath,
+  pairIdFromAnySlug,
   pairIdFromSlug,
   pairLanguageAlternates,
   pairSlug
@@ -32,11 +33,19 @@ describe("pair SEO helpers", () => {
   it("builds semantic slugs for known relationship pairs", () => {
     expect(pairSlug("chn_usa")).toBe("china-united-states");
     expect(pairCanonicalPath("rus_ukr")).toBe("/bilateral/russia-ukraine");
+    expect(pairCanonicalPath("usa_irn")).toBe("/bilateral/iran-united-states");
+    expect(pairCanonicalPath("usa_rus")).toBe("/bilateral/russia-united-states");
   });
 
   it("parses semantic slugs back to canonical pair ids", () => {
     expect(pairIdFromSlug("china-united-states")).toBe("chn_usa");
     expect(pairIdFromSlug("iran-united-states")).toBe("irn_usa");
+    expect(pairIdFromSlug("united-states-iran")).toBeNull();
+  });
+
+  it("parses reversed semantic slugs for redirects", () => {
+    expect(pairIdFromAnySlug("united-states-iran")).toBe("irn_usa");
+    expect(pairIdFromAnySlug("united-states-russia")).toBe("rus_usa");
   });
 
   it("normalizes legacy query pair ids", () => {

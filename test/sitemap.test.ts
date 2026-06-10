@@ -15,12 +15,17 @@ describe("sitemap", () => {
       const urls = new Set(entries.map((entry) => entry.url));
       const pool = loadCandidatePool();
 
-      expect(entries).toHaveLength(5 + pool.featuredPairs.length * 5);
+      expect(entries).toHaveLength(10 + pool.featuredPairs.length * 5);
       expect(urls).toContain("https://www.geoprizm.com");
       expect(urls).toContain("https://www.geoprizm.com/en");
+      expect(urls).toContain("https://www.geoprizm.com/about");
       expect(urls).toContain("https://www.geoprizm.com/bilateral/china-united-states");
       expect(urls).toContain("https://www.geoprizm.com/en/bilateral/china-united-states");
       expect(urls).toContain("https://www.geoprizm.com/zh-TW/bilateral/china-united-states");
+      expect(urls).toContain("https://www.geoprizm.com/bilateral/iran-united-states");
+      expect(urls).toContain("https://www.geoprizm.com/bilateral/russia-united-states");
+      expect(urls).not.toContain("https://www.geoprizm.com/bilateral/united-states-iran");
+      expect(urls).not.toContain("https://www.geoprizm.com/bilateral/united-states-russia");
     } finally {
       if (originalGdeltDatabaseUrl === undefined) {
         delete process.env.GDELT_DATABASE_URL;
