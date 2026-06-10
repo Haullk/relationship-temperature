@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { buildHomeJsonLd } from "../lib/homeSeo";
 import { buildAboutJsonLd, buildSiteJsonLd } from "../lib/siteJsonLd";
 
 describe("site JSON-LD", () => {
@@ -39,6 +40,27 @@ describe("site JSON-LD", () => {
       about: {
         "@id": "https://www.geoprizm.com/#software"
       }
+    });
+  });
+
+  it("adds homepage FAQ and citation schema for AI answer engines", () => {
+    const jsonLd = buildHomeJsonLd("en");
+    const faqPage = jsonLd["@graph"].find((node) => node["@type"] === "FAQPage");
+    const webPage = jsonLd["@graph"].find((node) => node["@type"] === "WebPage");
+
+    expect(webPage).toMatchObject({
+      "@id": "https://www.geoprizm.com/en#webpage",
+      mainEntity: {
+        "@id": "https://www.geoprizm.com/#software"
+      }
+    });
+    expect(webPage?.citation).toContain("https://www.gdeltproject.org/");
+    expect(Array.isArray(faqPage?.mainEntity)).toBe(true);
+    const questions = Array.isArray(faqPage?.mainEntity) ? faqPage.mainEntity : [];
+    expect(questions).toHaveLength(4);
+    expect(questions[0]).toMatchObject({
+      "@type": "Question",
+      name: "What is GeoPrizm?"
     });
   });
 });

@@ -13,6 +13,7 @@ import {
 
 import SiteHeader from "@/components/SiteHeader";
 import { chartPath, chartPoints, type ChartPoint } from "@/lib/chart";
+import { getHomeSeoCopy, type HomeSeoCopy } from "@/lib/homeSeo";
 import {
   defaultLocale,
   getDashboardCopy,
@@ -124,6 +125,7 @@ function TrendApp({
   locale: Locale;
 }) {
   const copy = getDashboardCopy(locale);
+  const homeSeoCopy = getHomeSeoCopy(locale);
   const [data, setData] = useState<TrendApiResponse | null>(null);
   const [selectedPair, setSelectedPair] = useState("chn_usa");
   const [draftObjectA, setDraftObjectA] = useState("chn");
@@ -134,7 +136,6 @@ function TrendApp({
   const [error, setError] = useState<string | null>(null);
   const [shareStatus, setShareStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [chartRangeDays, setChartRangeDays] = useState<ChartRangeDays>(90);
-  const [methodOpen, setMethodOpen] = useState(true);
   const [contentUpdated, setContentUpdated] = useState(false);
   const [aiPendingKeys, setAiPendingKeys] = useState<Set<string>>(() => new Set());
   const [aiMessage, setAiMessage] = useState<string | null>(null);
@@ -289,14 +290,6 @@ function TrendApp({
     if (draftAutoLoadTimer.current !== null) {
       window.clearTimeout(draftAutoLoadTimer.current);
     }
-  }, []);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 820px)");
-    const syncMethodState = () => setMethodOpen(!mediaQuery.matches);
-    syncMethodState();
-    mediaQuery.addEventListener("change", syncMethodState);
-    return () => mediaQuery.removeEventListener("change", syncMethodState);
   }, []);
 
   const selectedTurning = useMemo(() => {
@@ -491,46 +484,75 @@ function TrendApp({
         />
       </section>
 
-      <details
-        id="methodology"
-        className="method-box"
-        open={methodOpen}
-        onToggle={(event) => setMethodOpen(event.currentTarget.open)}
-      >
-        <summary>{copy.method.title}</summary>
-        <p className="method-lead">{copy.method.lead}</p>
-        <div className="method-grid">
-          <section>
-            <h3>{copy.method.indexTitle}</h3>
-            <p>{copy.method.indexBody}</p>
-          </section>
-          <section>
-            <h3>{copy.method.aiTitle}</h3>
-            <p>{copy.method.aiBody}</p>
-          </section>
-          <section>
-            <h3>{copy.method.noteTitle}</h3>
-            <p>
-              {copy.method.notePrefix}{" "}
-              <a href="http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf" target="_blank" rel="noreferrer">
-                GDELT 2.0
-              </a>
-              {" "}{copy.method.and}{" "}
-              <a href="https://parusanalytics.com/eventdata/data.dir/cameo.html" target="_blank" rel="noreferrer">
-                {copy.method.cameoLink}
-              </a>
-              {copy.method.noteSuffix}
-            </p>
-          </section>
-        </div>
-        <div className="method-actions">
-          <a className="method-full-link" href={methodologyHref}>
-            {copy.method.fullLink}
-          </a>
-        </div>
-      </details>
+      {initialSeoSummary ? null : <HomeSeoBrief copy={homeSeoCopy} />}
+
       <SiteFooter copy={copy} methodologyHref={methodologyHref} />
     </main>
+  );
+}
+
+function HomeSeoBrief({ copy }: { copy: HomeSeoCopy }) {
+  return (
+    <section className="home-seo-brief" aria-label={copy.overviewAria}>
+      <div className="home-seo-main">
+        <h2>{copy.title}</h2>
+        <p>{copy.bluf}</p>
+        <p>{copy.definition}</p>
+        <p>{copy.sourceClaim}</p>
+      </div>
+      <div className="home-seo-facts" aria-label={copy.factsTitle}>
+        <h3>{copy.factsTitle}</h3>
+        <dl>
+          {copy.facts.map((fact) => (
+            <div key={fact.label}>
+              <dt>{fact.label}</dt>
+              <dd>
+                <strong>{fact.value}</strong>
+                <span>{fact.detail}</span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      <div className="home-seo-links">
+        <section aria-labelledby="home-seo-sources-title">
+          <h3 id="home-seo-sources-title">{copy.sourcesTitle}</h3>
+          <ul>
+            {copy.sources.map((source) => (
+              <li key={source.href}>
+                <a href={source.href} target="_blank" rel="noreferrer">
+                  {source.label}
+                </a>
+                <span>{source.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section aria-labelledby="home-seo-trust-title">
+          <h3 id="home-seo-trust-title">{copy.trustTitle}</h3>
+          <ul>
+            {copy.trustLinks.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} target={link.external ? "_blank" : undefined} rel={link.external ? "noreferrer" : undefined}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+      <section className="home-faq" aria-labelledby="home-faq-title">
+        <h3 id="home-faq-title">{copy.faqTitle}</h3>
+        <div className="home-faq-list">
+          {copy.faq.map((item) => (
+            <details key={item.question}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    </section>
   );
 }
 

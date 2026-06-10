@@ -10,7 +10,7 @@ export const productHuntUrl = "https://www.producthunt.com/products/geoprizm";
 export const logoUrl = `${siteUrl}/logo.png`;
 
 const brandDescription =
-  "GeoPrizm is a free, open-source data dashboard that tracks bilateral relations through GDELT global news event signals, 0-100 relationship indexes, trend charts, and AI-assisted explanations.";
+  "GeoPrizm is a free, open-source bilateral relations index dashboard that tracks 0-100 relationship indexes, 90-day trend charts, and AI-assisted notes from GDELT 2.0 global news event data.";
 
 const sameAs = [githubUrl, docsUrl, productHuntUrl];
 
@@ -35,10 +35,13 @@ export function buildSiteJsonLd(inLanguage: string) {
         email: `mailto:${contactEmail}`,
         sameAs,
         knowsAbout: [
+          "GeoPrizm",
           "GDELT",
+          "GDELT 2.0 Event Database",
           "CAMEO event data",
           "GoldsteinScale",
           "bilateral relations",
+          "bilateral relations index dashboard",
           "geopolitical news signals",
           "relationship indexes"
         ],
@@ -67,6 +70,13 @@ export function buildSiteJsonLd(inLanguage: string) {
         applicationCategory: "ResearchApplication",
         operatingSystem: "Web",
         isAccessibleForFree: true,
+        featureList: [
+          "0-100 bilateral relations index",
+          "90-day trend charts",
+          "14-day rolling average",
+          "AI-assisted trend notes",
+          "GDELT 2.0 news event data citations"
+        ],
         author: {
           "@id": `${siteUrl}/#organization`
         },
@@ -84,6 +94,12 @@ export function buildSiteJsonLd(inLanguage: string) {
           name: "GDELT 2.0 Event Database",
           url: "https://www.gdeltproject.org/"
         },
+        citation: [
+          "https://www.gdeltproject.org/",
+          "https://www.gdeltproject.org/data.html",
+          "http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf",
+          "https://parusanalytics.com/eventdata/data.dir/cameo.html"
+        ],
         sameAs
       }
     ]

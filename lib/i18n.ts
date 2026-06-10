@@ -23,9 +23,9 @@ export const localeMeta: Record<Locale, {
     label: "简体中文",
     openGraphLocale: "zh_CN",
     title: "GeoPrizm | 双边关系看板",
-    description: "基于 GDELT 结构化新闻事件数据，追踪主要国家双边关系指数，并用 AI 辅助解释趋势变化线索。",
+    description: "GeoPrizm 是免费、开源的双边关系指数看板，基于 GDELT 2.0 新闻事件数据追踪 0-100 关系指数、90 天趋势和 AI 辅助解读。",
     ogTitle: "GeoPrizm 双边关系看板",
-    ogDescription: "从全球新闻信号追踪双边关系趋势，查看 0-100 关系指数、趋势段和中文 AI 解读。",
+    ogDescription: "GeoPrizm 用 GDELT 2.0 全球新闻事件数据追踪 0-100 双边关系指数、趋势段和中文 AI 解读。",
     socialAlt: "GeoPrizm 双边关系趋势看板"
   },
   en: {
@@ -33,9 +33,9 @@ export const localeMeta: Record<Locale, {
     label: "English",
     openGraphLocale: "en_US",
     title: "GeoPrizm | Bilateral Relations Dashboard",
-    description: "Track bilateral relationship indexes for major countries with GDELT global news event signals and AI-assisted trend notes.",
+    description: "GeoPrizm is a free, open-source bilateral relations index dashboard that tracks 0-100 indexes, 90-day trends, and AI-assisted notes from GDELT 2.0 news event data.",
     ogTitle: "GeoPrizm Bilateral Relations Dashboard",
-    ogDescription: "Track 0-100 relationship indexes, trend segments, and evidence from global news signals.",
+    ogDescription: "GeoPrizm tracks 0-100 bilateral relations indexes, trend segments, and AI-assisted notes from GDELT 2.0 global news event data.",
     socialAlt: "GeoPrizm bilateral relations trend dashboard"
   },
   ja: {
@@ -43,9 +43,9 @@ export const localeMeta: Record<Locale, {
     label: "日本語",
     openGraphLocale: "ja_JP",
     title: "GeoPrizm | 二国間関係ダッシュボード",
-    description: "GDELT の世界ニュースイベント信号をもとに、主要国の二国間関係指数とトレンドの変化を追跡します。",
+    description: "GeoPrizm は GDELT 2.0 ニュースイベントデータから 0-100 の二国間関係指数、90 日トレンド、AI 補助メモを追跡する無料のオープンソース看板です。",
     ogTitle: "GeoPrizm 二国間関係ダッシュボード",
-    ogDescription: "0-100 の関係指数、トレンド区間、ニュース上の根拠をまとめて確認できます。",
+    ogDescription: "GeoPrizm は GDELT 2.0 の世界ニュースイベントデータから 0-100 の二国間関係指数、トレンド区間、AI 補助メモを表示します。",
     socialAlt: "GeoPrizm 二国間関係トレンドダッシュボード"
   },
   "zh-TW": {
@@ -53,9 +53,9 @@ export const localeMeta: Record<Locale, {
     label: "繁體中文",
     openGraphLocale: "zh_TW",
     title: "GeoPrizm | 雙邊關係看板",
-    description: "基於 GDELT 結構化新聞事件資料，追蹤主要國家的雙邊關係指數，並用 AI 輔助整理趨勢變化線索。",
+    description: "GeoPrizm 是免費、開源的雙邊關係指數看板，基於 GDELT 2.0 新聞事件資料追蹤 0-100 關係指數、90 天趨勢和 AI 輔助解讀。",
     ogTitle: "GeoPrizm 雙邊關係看板",
-    ogDescription: "從全球新聞信號追蹤雙邊關係趨勢，查看 0-100 關係指數、趨勢區段與 AI 解讀。",
+    ogDescription: "GeoPrizm 用 GDELT 2.0 全球新聞事件資料追蹤 0-100 雙邊關係指數、趨勢區段與 AI 解讀。",
     socialAlt: "GeoPrizm 雙邊關係趨勢看板"
   },
   ko: {
@@ -63,9 +63,9 @@ export const localeMeta: Record<Locale, {
     label: "한국어",
     openGraphLocale: "ko_KR",
     title: "GeoPrizm | 양자 관계 대시보드",
-    description: "GDELT 글로벌 뉴스 이벤트 신호를 바탕으로 주요 국가의 양자 관계 지수와 추세 변화를 추적합니다.",
+    description: "GeoPrizm은 GDELT 2.0 뉴스 이벤트 데이터로 0-100 양자 관계 지수, 90일 추세, AI 보조 메모를 추적하는 무료 오픈소스 대시보드입니다.",
     ogTitle: "GeoPrizm 양자 관계 대시보드",
-    ogDescription: "0-100 관계 지수, 추세 구간, 글로벌 뉴스 근거를 함께 확인합니다.",
+    ogDescription: "GeoPrizm은 GDELT 2.0 글로벌 뉴스 이벤트 데이터에서 0-100 양자 관계 지수, 추세 구간, AI 보조 메모를 보여줍니다.",
     socialAlt: "GeoPrizm 양자 관계 추세 대시보드"
   }
 };

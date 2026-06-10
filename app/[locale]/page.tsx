@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import TrendDashboard from "@/components/TrendDashboard";
+import { buildHomeJsonLd } from "@/lib/homeSeo";
 import {
   defaultLocale,
   languageAlternates,
@@ -65,7 +66,16 @@ export default async function LocalizedHomePage({ params }: LocalizedHomePagePro
   if (locale === defaultLocale) {
     redirect("/");
   }
-  return <TrendDashboard locale={locale} />;
+  return (
+    <>
+      <script
+        id="geoprizm-home-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildHomeJsonLd(locale)) }}
+      />
+      <TrendDashboard locale={locale} />
+    </>
+  );
 }
 
 function resolveContentLocale(segment: string): Locale {
