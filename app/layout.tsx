@@ -6,6 +6,7 @@ import { buildSiteJsonLd } from "@/lib/siteJsonLd";
 import "./globals.css";
 
 const adsenseClient = "ca-pub-6263363592987165";
+const googleAnalyticsId = "G-X8J32FCRBR";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.geoprizm.com"),
@@ -57,6 +58,18 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           id="geoprizm-site-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`} />
+        <script
+          id="geoprizm-google-analytics"
+          dangerouslySetInnerHTML={{
+            __html: `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${googleAnalyticsId}');
+`
+          }}
         />
         <script
           async
