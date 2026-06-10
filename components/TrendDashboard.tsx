@@ -18,13 +18,13 @@ import {
   getDashboardCopy,
   getObjectName,
   localeMeta,
-  localizedPath,
+  localizedSwitchPath,
   relationshipStatusLabel,
   supportedLocales,
   type DashboardCopy,
   type Locale
 } from "@/lib/i18n";
-import { buildPairSeoSummary, localizedPairCanonicalPath, type PairSeoSummary } from "@/lib/pairSeo";
+import { buildPairSeoSummary, localizedPairCanonicalPath, pairCanonicalPath, type PairSeoSummary } from "@/lib/pairSeo";
 import type {
   AiExplanationResponse,
   LocalizedAiExplanation,
@@ -248,6 +248,16 @@ function TrendApp({
     });
   }, [loadPair]);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("lang") !== defaultLocale && url.searchParams.get("locale") !== defaultLocale) {
+      return;
+    }
+    url.searchParams.delete("lang");
+    url.searchParams.delete("locale");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
   useEffect(() => () => {
     if (draftAutoLoadTimer.current !== null) {
       window.clearTimeout(draftAutoLoadTimer.current);
@@ -321,7 +331,7 @@ function TrendApp({
   const languageOptions = useMemo(
     () => supportedLocales.map((targetLocale) => ({
       locale: targetLocale,
-      href: canonicalContentMode ? localizedPairCanonicalPath(selectedPair, targetLocale) : localizedPath(targetLocale, "/")
+      href: localizedSwitchPath(targetLocale, canonicalContentMode ? pairCanonicalPath(selectedPair) : "/")
     })),
     [canonicalContentMode, selectedPair]
   );

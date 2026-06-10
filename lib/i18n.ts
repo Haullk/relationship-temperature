@@ -111,6 +111,14 @@ export function localizedPath(locale: Locale, path: string): string {
   return `${localePrefix(locale)}${normalizedPath}`;
 }
 
+export function localizedSwitchPath(locale: Locale, path: string): string {
+  const href = localizedPath(locale, path);
+  if (locale !== defaultLocale) {
+    return href;
+  }
+  return `${href}${href.includes("?") ? "&" : "?"}lang=${encodeURIComponent(defaultLocale)}`;
+}
+
 export function localizedUrl(locale: Locale, path: string): string {
   return new URL(localizedPath(locale, path), siteUrl).toString();
 }

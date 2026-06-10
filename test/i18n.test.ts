@@ -7,6 +7,7 @@ import {
   localeFromPathname,
   localeFromSegment,
   localizedPath,
+  localizedSwitchPath,
   localizedUrl,
   pairLocalizedName,
   relationshipStatusLabel
@@ -25,6 +26,12 @@ describe("i18n helpers", () => {
     expect(localizedPath("zh-CN", "/bilateral/china-united-states")).toBe("/bilateral/china-united-states");
     expect(localizedPath("en", "/bilateral/china-united-states")).toBe("/en/bilateral/china-united-states");
     expect(localizedUrl("ja", "/")).toBe("https://www.geoprizm.com/ja");
+  });
+
+  it("marks explicit default-locale switch links so browser language detection does not override them", () => {
+    expect(localizedSwitchPath("zh-CN", "/")).toBe("/?lang=zh-CN");
+    expect(localizedSwitchPath("zh-CN", "/bilateral/china-united-states")).toBe("/bilateral/china-united-states?lang=zh-CN");
+    expect(localizedSwitchPath("en", "/bilateral/china-united-states")).toBe("/en/bilateral/china-united-states");
   });
 
   it("builds hreflang alternates for all supported locales", () => {
