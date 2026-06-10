@@ -414,6 +414,7 @@ function TrendApp({
     <main className="page-shell">
       <SiteHeader
         activeTab="dashboard"
+        aboutHref="/about"
         copy={copy}
         dashboardHref={dashboardHref}
         languageOptions={languageOptions}

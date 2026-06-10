@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { localeMeta, type DashboardCopy, type Locale } from "@/lib/i18n";
 
-type HeaderTab = "dashboard" | "methodology";
+type HeaderTab = "dashboard" | "methodology" | "about";
 type SiteHeaderCopy = Pick<DashboardCopy, "topbar" | "nav">;
 
 interface LanguageOption {
@@ -15,6 +15,7 @@ interface LanguageOption {
 
 interface SiteHeaderProps {
   activeTab: HeaderTab;
+  aboutHref: string;
   copy: SiteHeaderCopy;
   dashboardHref: string;
   languageOptions: LanguageOption[];
@@ -25,6 +26,7 @@ interface SiteHeaderProps {
 
 export default function SiteHeader({
   activeTab,
+  aboutHref,
   copy,
   dashboardHref,
   languageOptions,
@@ -235,6 +237,9 @@ export default function SiteHeader({
           aria-current={activeTab === "methodology" ? "page" : undefined}
         >
           {copy.nav.methodology}
+        </a>
+        <a className={`site-tab${activeTab === "about" ? " is-active" : ""}`} href={aboutHref} aria-current={activeTab === "about" ? "page" : undefined}>
+          {copy.nav.about}
         </a>
       </nav>
 

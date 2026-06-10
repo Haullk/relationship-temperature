@@ -230,7 +230,8 @@ const dashboardCopies = {
     nav: {
       aria: "主站导航",
       dashboard: "Dashboard",
-      methodology: "方法论"
+      methodology: "方法论",
+      about: "关于"
     },
     method: {
       title: "数据来源与方法说明",
@@ -393,7 +394,8 @@ const dashboardCopies = {
     nav: {
       aria: "Main navigation",
       dashboard: "Dashboard",
-      methodology: "Methodology"
+      methodology: "Methodology",
+      about: "About"
     },
     method: {
       title: "Data Source and Method",
@@ -549,7 +551,8 @@ const dashboardCopies = {
     nav: {
       aria: "メインナビゲーション",
       dashboard: "Dashboard",
-      methodology: "方法論"
+      methodology: "方法論",
+      about: "概要"
     },
     method: {
       title: "データソースと方法",
@@ -705,7 +708,8 @@ const dashboardCopies = {
     nav: {
       aria: "主站導覽",
       dashboard: "Dashboard",
-      methodology: "方法論"
+      methodology: "方法論",
+      about: "關於"
     },
     method: {
       title: "資料來源與方法說明",
@@ -868,7 +872,8 @@ const dashboardCopies = {
     nav: {
       aria: "주요 탐색",
       dashboard: "Dashboard",
-      methodology: "방법론"
+      methodology: "방법론",
+      about: "소개"
     },
     method: {
       title: "데이터 출처와 방법",

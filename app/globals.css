@@ -2506,6 +2506,16 @@ h2 {
   padding: 40px 18px 52px;
 }
 
+.about-page {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 22px 18px 28px;
+}
+
+.about-page .info-page {
+  padding-top: 18px;
+}
+
 .info-header {
   display: grid;
   gap: 14px;
@@ -2565,6 +2575,66 @@ h2 {
   color: var(--muted);
   font-size: var(--fs-body);
   line-height: 1.8;
+}
+
+.info-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.info-facts div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 10px 12px;
+}
+
+.info-facts dt {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-weight: 800;
+}
+
+.info-facts dd {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--fs-body);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.info-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 16px;
+}
+
+.info-links a {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 800;
+  padding: 0 10px;
+  text-decoration: none;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.info-links a:hover {
+  border-color: color-mix(in srgb, var(--blue) 32%, var(--line));
+  background: color-mix(in srgb, var(--blue) 5%, #ffffff);
+  color: var(--blue);
 }
 
 .info-footer {

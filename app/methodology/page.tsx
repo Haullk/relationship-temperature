@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import SiteHeader from "@/components/SiteHeader";
-import { readManyRelationshipCaches } from "@/lib/cache";
-import { loadCandidatePool } from "@/lib/candidatePool";
 import {
   getDashboardCopy,
   localeFromPathname,
@@ -13,6 +11,7 @@ import {
   supportedLocales,
   type Locale
 } from "@/lib/i18n";
+import { latestFeaturedDataEnd } from "@/lib/latestData";
 
 const githubUrl = "https://github.com/Haullk/relationship-temperature";
 const gdeltUrl = "https://www.gdeltproject.org/";
@@ -601,6 +600,7 @@ export default async function MethodologyPage({ searchParams }: MethodologyPageP
       />
       <SiteHeader
         activeTab="methodology"
+        aboutHref="/about"
         copy={{ topbar: copy.topbar, nav: copy.nav }}
         dashboardHref={returnHref}
         languageOptions={languageOptions}
@@ -780,20 +780,4 @@ function safeReturnHref(value: string | string[] | undefined): string {
     return "/";
   }
   return href;
-}
-
-async function latestFeaturedDataEnd(): Promise<string | null> {
-  const pool = loadCandidatePool();
-  const pairIds = pool.featuredPairs.map((pair) => pair.pairId);
-  const cache = await readManyRelationshipCaches(pairIds).catch(() => null);
-  if (cache === null) {
-    return null;
-  }
-  const dataEnds = Array.from(cache.values())
-    .map((payload) => payload.data_end)
-    .filter((value): value is string => Boolean(value));
-  if (dataEnds.length === 0) {
-    return null;
-  }
-  return dataEnds.sort((left, right) => left.localeCompare(right)).at(-1) ?? null;
 }

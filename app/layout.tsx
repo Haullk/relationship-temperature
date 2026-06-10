@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { defaultLocale, languageAlternates, localeMeta, type Locale } from "@/lib/i18n";
+import { buildSiteJsonLd } from "@/lib/siteJsonLd";
 import "./globals.css";
 
 const adsenseClient = "ca-pub-6263363592987165";
@@ -53,16 +54,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html lang={htmlLang}>
       <head>
         <script
+          id="geoprizm-site-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
+        <script
           async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
           crossOrigin="anonymous"
         />
       </head>
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
-        />
         {children}
       </body>
     </html>
@@ -71,30 +73,4 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
 function resolveRequestLocale(value: string | null): Locale {
   return value && value in localeMeta ? (value as Locale) : defaultLocale;
-}
-
-function buildSiteJsonLd(inLanguage: string) {
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "Organization",
-        "@id": "https://www.geoprizm.com/#organization",
-        name: "GeoPrizm",
-        url: "https://www.geoprizm.com/",
-        logo: "https://www.geoprizm.com/icon.svg?v=2",
-        sameAs: ["https://github.com/Haullk/relationship-temperature"]
-      },
-      {
-        "@type": "WebSite",
-        "@id": "https://www.geoprizm.com/#website",
-        name: "GeoPrizm",
-        url: "https://www.geoprizm.com/",
-        inLanguage,
-        publisher: {
-          "@id": "https://www.geoprizm.com/#organization"
-        }
-      }
-    ]
-  };
 }
