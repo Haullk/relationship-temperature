@@ -227,6 +227,11 @@ const dashboardCopies = {
       retry: "重试"
     },
     featuredAria: "重点关系",
+    nav: {
+      aria: "主站导航",
+      dashboard: "Dashboard",
+      methodology: "方法论"
+    },
     method: {
       title: "数据来源与方法说明",
       lead: "关系指数基于全球新闻报道计算，反映媒体对两国关系的信号，不代表官方外交立场。",
@@ -238,7 +243,8 @@ const dashboardCopies = {
       notePrefix: "指数反映的是“媒体在重点报道什么”，不等于两国关系的实际状态。重大事件密集报道时，指数可能出现短期大幅波动。数据方法参考",
       and: "与",
       cameoLink: "CAMEO 事件编码框架",
-      noteSuffix: "。"
+      noteSuffix: "。",
+      fullLink: "查看完整方法论"
     },
     footer: {
       aria: "站点导航",
@@ -384,6 +390,11 @@ const dashboardCopies = {
       retry: "Retry"
     },
     featuredAria: "Featured relationships",
+    nav: {
+      aria: "Main navigation",
+      dashboard: "Dashboard",
+      methodology: "Methodology"
+    },
     method: {
       title: "Data Source and Method",
       lead: "The relationship index is calculated from global news reports. It reflects media event signals, not an official diplomatic position.",
@@ -395,7 +406,8 @@ const dashboardCopies = {
       notePrefix: "The index reflects what global media is reporting, not the full state of bilateral relations. Heavy coverage around major events can cause short-term swings. The method references",
       and: "and",
       cameoLink: "the CAMEO event coding framework",
-      noteSuffix: "."
+      noteSuffix: ".",
+      fullLink: "Read the full methodology"
     },
     footer: {
       aria: "Site navigation",
@@ -534,6 +546,11 @@ const dashboardCopies = {
       retry: "再試行"
     },
     featuredAria: "注目の関係",
+    nav: {
+      aria: "メインナビゲーション",
+      dashboard: "Dashboard",
+      methodology: "方法論"
+    },
     method: {
       title: "データソースと方法",
       lead: "関係指数は世界のニュース報道から計算されます。メディア上のイベント信号を示すもので、公式な外交立場ではありません。",
@@ -545,7 +562,8 @@ const dashboardCopies = {
       notePrefix: "指数は世界のメディアが何を重点的に報じているかを反映します。二国間関係の全体像そのものではありません。大きな事件が集中して報じられると短期的な変動が大きくなる場合があります。方法は",
       and: "と",
       cameoLink: "CAMEO イベントコード体系",
-      noteSuffix: "を参照しています。"
+      noteSuffix: "を参照しています。",
+      fullLink: "詳しい方法論を見る"
     },
     footer: {
       aria: "サイトナビゲーション",
@@ -684,6 +702,11 @@ const dashboardCopies = {
       retry: "重試"
     },
     featuredAria: "重點關係",
+    nav: {
+      aria: "主站導覽",
+      dashboard: "Dashboard",
+      methodology: "方法論"
+    },
     method: {
       title: "資料來源與方法說明",
       lead: "關係指數基於全球新聞報導計算，反映媒體對兩國關係的信號，不代表官方外交立場。",
@@ -695,7 +718,8 @@ const dashboardCopies = {
       notePrefix: "指數反映的是「媒體在重點報導什麼」，不等於兩國關係的實際狀態。重大事件密集報導時，指數可能出現短期大幅波動。資料方法參考",
       and: "與",
       cameoLink: "CAMEO 事件編碼框架",
-      noteSuffix: "。"
+      noteSuffix: "。",
+      fullLink: "查看完整方法論"
     },
     footer: {
       aria: "站點導覽",
@@ -841,6 +865,11 @@ const dashboardCopies = {
       retry: "다시 시도"
     },
     featuredAria: "주요 관계",
+    nav: {
+      aria: "주요 탐색",
+      dashboard: "Dashboard",
+      methodology: "방법론"
+    },
     method: {
       title: "데이터 출처와 방법",
       lead: "관계 지수는 글로벌 뉴스 보도를 바탕으로 계산됩니다. 이는 언론 이벤트 신호를 반영하며 공식 외교 입장을 뜻하지 않습니다.",
@@ -852,7 +881,8 @@ const dashboardCopies = {
       notePrefix: "이 지수는 글로벌 언론이 무엇을 집중적으로 보도하는지를 반영합니다. 양자 관계의 전체 실제 상태와 같지는 않습니다. 주요 사건 보도가 집중되면 단기 변동이 커질 수 있습니다. 방법은",
       and: "및",
       cameoLink: "CAMEO 이벤트 코딩 프레임워크",
-      noteSuffix: "를 참고합니다."
+      noteSuffix: "를 참고합니다.",
+      fullLink: "전체 방법론 보기"
     },
     footer: {
       aria: "사이트 탐색",

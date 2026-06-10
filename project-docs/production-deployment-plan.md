@@ -361,6 +361,12 @@ Certbot 会：
 - 更新 Nginx 配置。
 - 配置自动续期。
 
+生产环境建议保留公网 `80/tcp`，但只让 Nginx 用它做 HTTP 到 HTTPS 的跳转：
+
+- `http://geoprizm.com/*` 和 `http://www.geoprizm.com/*` 返回 `308`，跳到 `https://www.geoprizm.com/*`。
+- Next.js 仍然只监听 VPS 本机的 `127.0.0.1:3000`，不会通过 80 端口直接暴露。
+- 这样用户或搜索引擎访问 HTTP 地址时能自动进入 HTTPS，也方便 Let's Encrypt 的 HTTP-01 验证和续期。
+
 没有域名时，先用 HTTP IP 访问即可：
 
 ```text
@@ -442,6 +448,16 @@ sudo ufw status
 ```
 
 Next.js 只监听 `127.0.0.1:3000`，不要直接暴露公网 3000 端口。
+
+当前生产环境保留：
+
+```text
+22/tcp   ALLOW IN    SSH 管理入口
+80/tcp   ALLOW IN    Nginx HTTP -> HTTPS 跳转和证书验证
+443/tcp  ALLOW IN    正式 HTTPS 网站入口
+```
+
+不要开放 PostgreSQL、Next.js `3000`、VNC 或其他后台管理端口到公网。
 
 ## 7. 项目部署
 
@@ -637,6 +653,11 @@ curl -I http://VPS_IP
 ```nginx
 server_name example.com www.example.com;
 ```
+
+当前生产环境采用两个 Nginx server block：
+
+- `80`：只处理 `geoprizm.com` 和 `www.geoprizm.com`，统一 `308` 跳转到 `https://www.geoprizm.com$request_uri`；未知 Host 返回 `444` 直接断开。
+- `443`：正式 HTTPS 入口，反向代理到 `http://127.0.0.1:3000`。
 
 然后申请 HTTPS：
 
@@ -908,6 +929,7 @@ ss -tulpn | grep -E ':80|:443|:3000'
 预期：
 
 - `80` 和 `443` 由 Nginx 监听公网。
+- `80` 访问正式域名时返回 `308`，跳转到 `https://www.geoprizm.com`。
 - `3000` 只监听 `127.0.0.1`。
 
 接口检查：
@@ -970,7 +992,34 @@ curl -k -s -o /dev/null -w '%{http_code}\n' https://www.geoprizm.com/.git/config
 - AI Bot 可读取 `robots.txt`。
 - 常见扫描路径被 Nginx 直接断开，curl 通常显示 `000`。
 
-### 12.3 用户体验检查
+### 12.4 VPS 配置备份
+
+VPS 配置变更后建议立刻做一次配置快照，便于回滚或重建服务器。
+
+当前已创建一次生产配置备份：
+
+```text
+/root/geoprizm-config-backups/20260609-000740
+/root/geoprizm-config-backups/20260609-000740.tar.gz
+```
+
+备份内容包括：
+
+- Nginx 站点配置、限流配置、安全拦截配置。
+- systemd Web 服务和每日刷新 timer/service。
+- fail2ban 的 SSH 与 Nginx 扫描防护规则。
+- UFW 当前规则快照、Nginx 完整配置导出、`nginx -t` 检查结果、systemd timer 列表。
+- 每日刷新 wrapper 脚本 `/usr/local/bin/relationship-temperature-refresh`。
+
+备份不包括：
+
+- `/etc/relationship-temperature.env` 里的数据库密码、AI API Key 等密钥。
+- Let's Encrypt 私钥。
+- PostgreSQL 数据库数据。
+
+恢复配置时先解压到临时目录，人工比对后再复制回 `/etc/nginx`、`/etc/systemd/system`、`/etc/fail2ban` 等位置，不要直接覆盖密钥文件。
+
+### 12.5 用户体验检查
 
 - `http://VPS_IP` 能打开页面。
 - `/api/trend` 返回 `cacheStatus` 和 `relationship` 数据。
